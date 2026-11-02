@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Lightbulb, MessageCircle, Scale } from "lucide-react";
+import { Activity, ChevronRight, Footprints, Lightbulb, MessageCircle, Scale, Trophy, Utensils } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
 import { Ring } from "@/components/Ring";
@@ -11,13 +11,17 @@ import { supabase } from "@/lib/supabase";
 import { useSettings } from "@/lib/settings";
 import { formatDate, greeting, programStatus, todayISO } from "@/lib/dates";
 import { loadDaily, type DailyItem } from "@/lib/daily";
+import { pointsForDay } from "@/lib/points";
+import { loadLeaderboard, ranks } from "@/lib/leaderboard";
 
 type Today = { calories: number; steps: number; points: number; weightChange: number | null };
+type Rank = { rank: number; of: number; points: number } | null;
 
 export default function HomePage() {
   const { profile } = useAuth();
   const settings = useSettings();
   const [today, setToday] = useState<Today | null>(null);
+  const [rank, setRank] = useState<Rank>(null);
   const [daily, setDaily] = useState<{ coach: DailyItem | null; tip: DailyItem | null } | null>(null);
 
   const date = todayISO();
@@ -26,8 +30,6 @@ export default function HomePage() {
   useEffect(() => {
     if (!profile || !settings) return;
     const sb = supabase();
-    const pts = { home: +settings.points_home, gym: +settings.points_gym, class: +settings.points_class };
-    const cap = +settings.daily_point_cap || Infinity;
     Promise.all([
       sb.from("meals").select("calories").eq("user_id", profile.id).eq("date", date),
       sb.from("daily_steps").select("steps").eq("user_id", profile.id).eq("date", date).maybeSingle(),
@@ -38,12 +40,13 @@ export default function HomePage() {
       setToday({
         calories: (meals.data ?? []).reduce((s, m) => s + m.calories, 0),
         steps: steps.data?.steps ?? 0,
-        points: Math.min(
-          cap,
-          (workouts.data ?? []).reduce((s, w) => s + (pts[w.location as keyof typeof pts] ?? 0), 0),
-        ),
+        points: pointsForDay((workouts.data ?? []).map((w) => w.location), date, settings),
         weightChange: latest != null && profile.start_weight != null ? Number(latest) - Number(profile.start_weight) : null,
       });
+    });
+    loadLeaderboard().then((rows) => {
+      const i = rows.findIndex((r) => r.user_id === profile.id);
+      setRank(i >= 0 ? { rank: ranks(rows)[i], of: rows.length, points: rows[i].points } : null);
     });
   }, [profile, settings, date]);
 
@@ -114,6 +117,14 @@ export default function HomePage() {
         )}
       </section>
 
+      {/* Quick log */}
+      <section className="rise grid grid-cols-4 gap-2" style={{ animationDelay: "60ms" }}>
+        <Quick href="/food" label="Food" Icon={Utensils} color="var(--brand)" />
+        <Quick href="/move" label="Workout" Icon={Activity} color="var(--violet)" />
+        <Quick href="/move" label="Steps" Icon={Footprints} color="var(--accent)" />
+        <Quick href="/progress" label="Weigh-in" Icon={Scale} color="var(--gold)" />
+      </section>
+
       {/* Message from Marcos */}
       <Card className="rise" style={{ animationDelay: "80ms" }}>
         <div className="flex items-center gap-3">
@@ -168,12 +179,55 @@ export default function HomePage() {
         </div>
       </Card>
 
+      {rank && (
+        <Link href="/crew" className="rise block">
+          <Card className="flex items-center gap-4 active:scale-[0.99] transition">
+            <span className="flex size-12 items-center justify-center rounded-2xl bg-gold/15 text-gold">
+              <Trophy className="size-6" />
+            </span>
+            <div className="flex-1">
+              <p className="font-semibold">
+                {rank.points > 0 ? `You're #${rank.rank} of ${rank.of}` : "Get on the board"}
+              </p>
+              <p className="text-sm text-muted">
+                {rank.points} challenge point{rank.points === 1 ? "" : "s"} · see the leaderboard
+              </p>
+            </div>
+            <ChevronRight className="size-5 text-muted" />
+          </Card>
+        </Link>
+      )}
+
       {settings.groupme_url && (
         <ButtonLink href={settings.groupme_url} external variant="secondary" className="rise w-full">
           <MessageCircle className="size-5 text-brand" /> Open our GroupMe
         </ButtonLink>
       )}
     </div>
+  );
+}
+
+function Quick({
+  href,
+  label,
+  Icon,
+  color,
+}: {
+  href: string;
+  label: string;
+  Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  color: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col items-center gap-2 rounded-2xl bg-card py-3.5 shadow-card ring-1 ring-line/60 transition active:scale-[0.96]"
+    >
+      <span className="flex size-10 items-center justify-center rounded-full" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)` }}>
+        <Icon className="size-5" style={{ color }} />
+      </span>
+      <span className="text-xs font-semibold">{label}</span>
+    </Link>
   );
 }
 

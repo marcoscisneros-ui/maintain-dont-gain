@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, UserRound } from "lucide-react";
+import { Activity, House, TrendingUp, Trophy, Utensils } from "lucide-react";
 import { cn } from "./ui";
 
 const ITEMS = [
   { href: "/home", label: "Home", Icon: House },
-  { href: "/me", label: "Me", Icon: UserRound },
+  { href: "/food", label: "Food", Icon: Utensils },
+  { href: "/move", label: "Move", Icon: Activity },
+  { href: "/progress", label: "Progress", Icon: TrendingUp },
+  { href: "/crew", label: "Crew", Icon: Trophy },
 ];
 
 export function BottomNav() {

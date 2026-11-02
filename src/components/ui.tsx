@@ -138,6 +138,45 @@ export function PageHeader({ title, subtitle, right }: { title: string; subtitle
   );
 }
 
+export function Chip({
+  selected,
+  onClick,
+  children,
+  className,
+}: {
+  selected?: boolean;
+  onClick?: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "min-h-10 rounded-full px-4 text-sm font-medium ring-1 transition active:scale-[0.97]",
+        selected ? "bg-ink text-bg ring-ink" : "bg-card-2 text-ink ring-line",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function SectionTitle({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <h2 className="text-lg font-semibold">{children}</h2>
+      {right}
+    </div>
+  );
+}
+
+export function Empty({ children }: { children: React.ReactNode }) {
+  return <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">{children}</p>;
+}
+
 export function FullScreenLoader() {
   return (
     <div className="flex min-h-dvh items-center justify-center text-brand">
