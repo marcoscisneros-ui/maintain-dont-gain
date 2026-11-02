@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Activity, ChevronRight, Footprints, Lightbulb, MessageCircle, Scale, Trophy, Utensils } from "lucide-react";
+import { Activity, BookOpen, ChevronRight, Footprints, Lightbulb, Megaphone, MessageCircle, Scale, Trophy, Utensils } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
 import { Ring } from "@/components/Ring";
@@ -10,7 +10,9 @@ import { ButtonLink, Card } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useSettings } from "@/lib/settings";
 import { formatDate, greeting, programStatus, todayISO } from "@/lib/dates";
-import { loadDaily, type DailyItem } from "@/lib/daily";
+import { loadDaily, welcomeFallback, type DailyItem } from "@/lib/daily";
+import { DailyWelcome } from "@/components/DailyWelcome";
+import { formatEventTime, lastSeenNews, loadAnnouncements, splitFeed, type Announcement } from "@/lib/content";
 import { pointsForDay } from "@/lib/points";
 import { loadLeaderboard, ranks } from "@/lib/leaderboard";
 
@@ -22,6 +24,7 @@ export default function HomePage() {
   const settings = useSettings();
   const [today, setToday] = useState<Today | null>(null);
   const [rank, setRank] = useState<Rank>(null);
+  const [feed, setFeed] = useState<{ latest: Announcement | null; nextEvent: Announcement | null; unseen: boolean } | null>(null);
   const [daily, setDaily] = useState<{ coach: DailyItem | null; tip: DailyItem | null } | null>(null);
 
   const date = todayISO();
@@ -51,15 +54,37 @@ export default function HomePage() {
   }, [profile, settings, date]);
 
   useEffect(() => {
-    if (status) loadDaily(status.day).then(setDaily);
+    if (status) loadDaily(status).then(setDaily);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status?.day]);
+  }, [status?.day, status?.phase]);
+
+  useEffect(() => {
+    loadAnnouncements().then((all) => {
+      const { events, news } = splitFeed(all);
+      const maxId = all.length ? Math.max(...all.map((a) => a.id)) : 0;
+      setFeed({ latest: news[0] ?? null, nextEvent: events[0] ?? null, unseen: maxId > lastSeenNews() });
+    });
+  }, []);
 
   if (!profile || !settings || !status) return null;
   const coachName = settings.coach_name || "Marcos";
+  const coachMessage = daily?.coach?.body ?? welcomeFallback(coachName);
 
   return (
     <div className="space-y-4 pt-6">
+      {daily && (
+        <DailyWelcome
+          userId={profile.id}
+          date={date}
+          status={status}
+          coachName={coachName}
+          coachTitle={settings.coach_title || "Your coach"}
+          coachPhoto={settings.coach_photo_url || null}
+          firstName={profile.first_name}
+          message={coachMessage}
+          tip={daily.tip}
+        />
+      )}
       {/* Header */}
       <header className="rise flex items-center justify-between">
         <div>
@@ -135,8 +160,7 @@ export default function HomePage() {
           </div>
         </div>
         <p className="mt-4 text-[17px] leading-relaxed whitespace-pre-line">
-          {daily?.coach?.body ??
-            `Welcome to Maintain, Don't Gain! The holidays don't have to mean starting over in January. Log a little every day, show up when you can, and let's walk into the new year exactly where we started, or better. I'm in this with you. – ${coachName}`}
+          {coachMessage}
         </p>
       </Card>
 
@@ -179,6 +203,38 @@ export default function HomePage() {
         </div>
       </Card>
 
+      {/* News & events */}
+      {feed && (feed.nextEvent || feed.latest) && (
+        <Link href="/news" className="rise block">
+          <Card className="active:scale-[0.99] transition">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm font-semibold text-violet">
+                <Megaphone className="size-4" /> News & events
+              </span>
+              {feed.unseen && <span className="rounded-full bg-brand px-2 py-0.5 text-[11px] font-bold text-white">NEW</span>}
+            </div>
+            {feed.nextEvent && feed.nextEvent.event_at && (
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-xl brand-gradient text-white">
+                  <span className="text-[10px] font-bold">{formatEventTime(feed.nextEvent.event_at).month}</span>
+                  <span className="text-lg leading-none font-bold">{formatEventTime(feed.nextEvent.event_at).day}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{feed.nextEvent.title}</p>
+                  <p className="truncate text-sm text-muted">{formatEventTime(feed.nextEvent.event_at).full}</p>
+                </div>
+              </div>
+            )}
+            {feed.latest && (
+              <div className={feed.nextEvent ? "mt-3 border-t border-line pt-3" : "mt-2"}>
+                <p className="font-semibold">{feed.latest.title}</p>
+                <p className="line-clamp-2 text-sm text-muted">{feed.latest.body.replace(/[#*-]/g, "").trim()}</p>
+              </div>
+            )}
+          </Card>
+        </Link>
+      )}
+
       {rank && (
         <Link href="/crew" className="rise block">
           <Card className="flex items-center gap-4 active:scale-[0.99] transition">
@@ -197,6 +253,19 @@ export default function HomePage() {
           </Card>
         </Link>
       )}
+
+      <Link href="/library" className="rise block">
+        <Card className="flex items-center gap-4 active:scale-[0.99] transition">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-accent/15 text-accent">
+            <BookOpen className="size-6" />
+          </span>
+          <div className="flex-1">
+            <p className="font-semibold">Recipes & Tips</p>
+            <p className="text-sm text-muted">Easy meals and holiday survival tricks</p>
+          </div>
+          <ChevronRight className="size-5 text-muted" />
+        </Card>
+      </Link>
 
       {settings.groupme_url && (
         <ButtonLink href={settings.groupme_url} external variant="secondary" className="rise w-full">

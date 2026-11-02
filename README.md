@@ -20,6 +20,11 @@ All three have free plans that comfortably cover 15–30 members.
 2. Open `supabase/01_schema.sql` from this repo, copy **all** of it, paste it in, and click **Run**.
 3. You should see "Success. No rows returned."
 
+### 2b. Load the starter content
+Same as above, but with `supabase/02_content.sql`: **New query** → paste all of it → **Run**.
+This adds the 49 daily messages, 49 tips, starter recipes, and a welcome announcement.
+(Run it only once, or you'll get duplicates.)
+
 ### 3. Lock down sign-ups (important)
 **Authentication → Sign In / Providers → Email** (or **Authentication → Settings**):
 - Turn **OFF** "Allow new users to sign up". (The app creates accounts itself. This stops anyone from going around it.)

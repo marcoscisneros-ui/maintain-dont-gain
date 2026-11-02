@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarPlus, MessageCircle, Trophy } from "lucide-react";
+import { BookOpen, CalendarPlus, Megaphone, MessageCircle, Trophy } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
 import { ButtonLink, Card, Empty, PageHeader, SectionTitle, cn } from "@/components/ui";
@@ -36,6 +36,15 @@ export default function CrewPage() {
             <CalendarPlus className="size-4 text-brand" /> Book a class
           </ButtonLink>
         ) : null}
+      </div>
+
+      <div className="rise grid grid-cols-2 gap-2">
+        <ButtonLink href="/news" variant="secondary" className="text-sm">
+          <Megaphone className="size-4 text-violet" /> News & events
+        </ButtonLink>
+        <ButtonLink href="/library" variant="secondary" className="text-sm">
+          <BookOpen className="size-4 text-accent" /> Recipes & tips
+        </ButtonLink>
       </div>
 
       {podium.length > 0 && (
