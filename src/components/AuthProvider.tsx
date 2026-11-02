@@ -24,8 +24,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile((data as Profile) ?? null);
   }, []);
 
+  const [configError, setConfigError] = useState(false);
+
   useEffect(() => {
-    const sb = supabase();
+    let sb: ReturnType<typeof supabase>;
+    try {
+      sb = supabase();
+    } catch {
+      setConfigError(true);
+      return;
+    }
     let alive = true;
 
     sb.auth.getSession().then(async ({ data }) => {
@@ -64,6 +72,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setSession(null);
   }, []);
+
+  if (configError) {
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 text-center">
+        <p className="text-5xl">🛠️</p>
+        <h1 className="mt-4 text-2xl font-bold">Almost ready</h1>
+        <p className="mt-2 text-muted">
+          The app is missing its Supabase settings. In Vercel, open the project → Settings → Environment Variables, add
+          the three values from the README, then redeploy.
+        </p>
+        <a href="/api/health" className="mt-6 font-semibold text-brand">
+          Check setup status →
+        </a>
+      </main>
+    );
+  }
 
   return (
     <Ctx.Provider value={{ loading, session, profile, refreshProfile, signOut }}>{children}</Ctx.Provider>
