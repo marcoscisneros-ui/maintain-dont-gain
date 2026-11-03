@@ -5,6 +5,7 @@ import { CalendarPlus, Footprints, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { DatePager } from "@/components/DatePager";
 import { useToast } from "@/components/Toast";
+import { isMilestone, useCelebrate } from "@/components/Celebration";
 import { Button, ButtonLink, Card, Chip, ErrorText, Input, PageHeader, SectionTitle, cn } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useSettings } from "@/lib/settings";
@@ -22,6 +23,7 @@ export default function MovePage() {
   const { profile } = useAuth();
   const settings = useSettings();
   const toast = useToast();
+  const celebrate = useCelebrate();
   const [date, setDate] = useState(todayISO());
   const [steps, setSteps] = useState("");
   const [savedSteps, setSavedSteps] = useState<number | null>(null);
@@ -80,7 +82,11 @@ export default function MovePage() {
       .from("daily_steps")
       .upsert({ user_id: profile!.id, date, steps: n, updated_at: new Date().toISOString() });
     if (error) return toast.show("Couldn't save steps");
-    toast.show(n >= profile!.step_goal ? `${n.toLocaleString()} steps. Goal hit! 🎉` : `${n.toLocaleString()} steps saved ✓`);
+    if (n >= profile!.step_goal && (savedSteps ?? 0) < profile!.step_goal) {
+      celebrate({ kind: "medal", title: "Step goal crushed!", subtitle: `${n.toLocaleString()} steps today` });
+    } else {
+      toast.show(`${n.toLocaleString()} steps saved ✓`);
+    }
     (document.activeElement as HTMLElement | null)?.blur();
     load();
   }
@@ -100,7 +106,14 @@ export default function MovePage() {
     if (error) return setError("Couldn't save. Check your connection.");
     const after = pointsForDay([...dayWorkouts.map((w) => w.location), loc], date, settings!);
     const gained = after - dayPoints;
-    toast.show(gained > 0 ? `Nice work! +${gained} pt${gained === 1 ? "" : "s"} 💪` : "Workout logged ✓");
+    const total = await countMine("workouts", profile!.id);
+    celebrate({
+      kind: "dumbbell",
+      title: `Dumbbell #${total} collected!`,
+      subtitle: total === 1 ? "Your first workout is in the books 💪" : `${what} logged. Keep stacking them.`,
+      points: gained,
+      milestone: isMilestone(total) && total > 1,
+    });
     setLoc(null);
     setNotes("");
     setClassName("");
@@ -320,4 +333,9 @@ function Stat({ value, label, color }: { value: number; label: string; color: st
       <p className="text-xs text-muted">{label}</p>
     </div>
   );
+}
+
+async function countMine(table: string, userId: string): Promise<number> {
+  const { count } = await supabase().from(table).select("user_id", { count: "exact", head: true }).eq("user_id", userId);
+  return count ?? 0;
 }

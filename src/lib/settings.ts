@@ -10,6 +10,7 @@ export type Settings = {
   coach_title: string;
   coach_photo_url: string;
   groupme_url: string;
+  facebook_url: string;
   class_url: string;
   class_url_ios: string;
   class_url_android: string;
@@ -30,6 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
   coach_title: "Managing Partner",
   coach_photo_url: "",
   groupme_url: "",
+  facebook_url: "",
   class_url: "",
   class_url_ios: "",
   class_url_android: "",

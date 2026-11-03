@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogOut, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { AvatarPicker } from "@/components/AvatarPicker";
-import { Button, Card, ErrorText, Field, Input, PageHeader } from "@/components/ui";
+import { Button, Card, ErrorText, Field, Input, PageHeader, Toggle } from "@/components/ui";
+import { playTada, setSoundEnabled, soundEnabled } from "@/lib/sound";
 import { supabase } from "@/lib/supabase";
 import { HeightInput, isValidHeight } from "@/components/HeightInput";
 import { TierBadge } from "@/components/TierBadge";
@@ -21,6 +22,8 @@ export default function MePage() {
   const [steps, setSteps] = useState(profile?.step_goal?.toString() ?? "");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [sound, setSound] = useState(true);
+  useEffect(() => setSound(soundEnabled()), []);
   const [error, setError] = useState("");
 
   if (!profile) return null;
@@ -131,6 +134,19 @@ export default function MePage() {
           </Button>
         </Card>
       </form>
+
+      <Card className="rise mt-4" style={{ animationDelay: "90ms" }}>
+        <Toggle
+          checked={sound}
+          onChange={(v) => {
+            setSound(v);
+            setSoundEnabled(v);
+            if (v) playTada();
+          }}
+          label="🔊 Celebration sounds"
+        />
+        <p className="mt-1 text-xs text-muted">The &quot;ta-da&quot; when you log a workout, meal, or win a prize. Your phone&apos;s silent switch may also mute it.</p>
+      </Card>
 
       <Card className="rise mt-4 text-sm text-muted" style={{ animationDelay: "120ms" }}>
         <p className="font-semibold text-ink">Add to your home screen</p>

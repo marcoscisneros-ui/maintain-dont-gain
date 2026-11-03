@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { DatePager } from "@/components/DatePager";
 import { Ring } from "@/components/Ring";
 import { useToast } from "@/components/Toast";
+import { isMilestone, useCelebrate } from "@/components/Celebration";
 import { Button, Card, Chip, Empty, ErrorText, Input, PageHeader, SectionTitle } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { todayISO } from "@/lib/dates";
@@ -21,6 +22,7 @@ function defaultLabel() {
 export default function FoodPage() {
   const { profile } = useAuth();
   const toast = useToast();
+  const celebrate = useCelebrate();
   const [date, setDate] = useState(todayISO());
   const [meals, setMeals] = useState<Meal[]>([]);
   const [recent, setRecent] = useState<{ name: string; calories: number }[]>([]);
@@ -69,7 +71,14 @@ export default function FoodPage() {
     const { error } = await supabase().from("meals").insert({ ...entry, date });
     setBusy(false);
     if (error) return setError("Couldn't save. Check your connection.");
-    toast.show(`Logged ${entry.calories} cal ✓`);
+    const total = await countMine("meals", profile!.id);
+    const left = profile!.calorie_target - (meals.reduce((s, m) => s + m.calories, 0) + entry.calories);
+    celebrate({
+      kind: "apple",
+      title: total === 1 ? "First meal logged!" : `Meal #${total} logged!`,
+      subtitle: left >= 0 ? `${entry.calories} cal · ${left.toLocaleString()} left today` : `${entry.calories} cal · honest logging is winning`,
+      milestone: isMilestone(total) && total > 1,
+    });
     load();
   }
 
@@ -198,4 +207,9 @@ export default function FoodPage() {
       </Card>
     </div>
   );
+}
+
+async function countMine(table: string, userId: string): Promise<number> {
+  const { count } = await supabase().from(table).select("user_id", { count: "exact", head: true }).eq("user_id", userId);
+  return count ?? 0;
 }

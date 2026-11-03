@@ -13,6 +13,7 @@ import { useSettings } from "@/lib/settings";
 import { useRewards } from "@/lib/useRewards";
 import { addDays, formatDate, todayISO } from "@/lib/dates";
 import { buildWheel, type Spin } from "@/lib/rewards";
+import { playTada } from "@/lib/sound";
 import { useMemo } from "react";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -61,6 +62,7 @@ export default function RewardsPage() {
       setSpinning(false);
       setWinner(target.index);
       setParty(true);
+      playTada(true);
       setTimeout(() => setWon(json.spin as Spin), reduceMotion ? 0 : 900);
       setTimeout(() => setParty(false), 2600);
       reload();

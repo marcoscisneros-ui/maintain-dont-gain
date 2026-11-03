@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { ButtonLink, Card, Empty, PageHeader, SectionTitle, cn } from "@/components/ui";
 import { loadLeaderboard, ranks, type Row } from "@/lib/leaderboard";
 import { TierBadge } from "@/components/TierBadge";
+import { CommunityCard } from "@/components/CommunityCard";
 import { useSettings } from "@/lib/settings";
 import { classLink } from "@/lib/classLink";
 
@@ -27,6 +28,8 @@ export default function CrewPage() {
     <div className="space-y-4 pt-6">
       <PageHeader title="Crew" subtitle="Show up, stack points, cheer each other on." />
 
+      <CommunityCard url={settings.facebook_url} />
+
       <div className="rise grid grid-cols-2 gap-2">
         {settings.groupme_url ? (
           <ButtonLink href={settings.groupme_url} external variant="secondary" className="text-sm">
@@ -41,11 +44,11 @@ export default function CrewPage() {
       </div>
 
       <div className="rise grid grid-cols-2 gap-2">
-        <ButtonLink href="/news" variant="secondary" className="text-sm">
-          <Megaphone className="size-4 text-violet" /> News & events
-        </ButtonLink>
         <ButtonLink href="/rewards" variant="secondary" className="col-span-2 text-sm">
           🎡 Weekly prize wheel
+        </ButtonLink>
+        <ButtonLink href="/news" variant="secondary" className="text-sm">
+          <Megaphone className="size-4 text-violet" /> News & events
         </ButtonLink>
         <ButtonLink href="/library" variant="secondary" className="text-sm">
           <BookOpen className="size-4 text-accent" /> Recipes & tips

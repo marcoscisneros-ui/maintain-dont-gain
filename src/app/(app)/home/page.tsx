@@ -12,6 +12,7 @@ import { useSettings } from "@/lib/settings";
 import { formatDate, greeting, programStatus, todayISO } from "@/lib/dates";
 import { loadDaily, welcomeFallback, type DailyItem } from "@/lib/daily";
 import { DailyWelcome } from "@/components/DailyWelcome";
+import { CommunityCard } from "@/components/CommunityCard";
 import { HeartButton } from "@/components/HeartButton";
 import { markSeenAndLoad, setHeart, type HeartState } from "@/lib/engagement";
 import { JingleBells, SeasonalFall } from "@/components/Seasonal";
@@ -334,6 +335,8 @@ export default function HomePage() {
           <ChevronRight className="size-5 text-muted" />
         </Card>
       </Link>
+
+      <CommunityCard url={settings.facebook_url} compact />
 
       {settings.groupme_url && (
         <ButtonLink href={settings.groupme_url} external variant="secondary" className="rise w-full">

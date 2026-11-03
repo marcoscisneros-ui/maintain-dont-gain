@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, FileImage, Lock, Plus, Trash2, X } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/Toast";
+import { useCelebrate } from "@/components/Celebration";
 import { Button, Card, Empty, ErrorText, Field, Input, PageHeader, SectionTitle, Spinner, Toggle, cn } from "@/components/ui";
 import { HeightInput, formatHeight, isValidHeight } from "@/components/HeightInput";
 import { supabase } from "@/lib/supabase";
@@ -24,6 +25,7 @@ type Photo = { id: number; date: string; path: string; note: string | null };
 export default function ProgressPage() {
   const { profile, refreshProfile } = useAuth();
   const toast = useToast();
+  const celebrate = useCelebrate();
   const [scans, setScans] = useState<Scan[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
@@ -114,7 +116,7 @@ export default function ProgressPage() {
             needsHeight={profile.height_in == null}
             onSaved={() => {
               setAdding(false);
-              toast.show("Weigh-in saved ✓");
+              celebrate({ kind: "star", title: "Weigh-in logged!", subtitle: "Checking in is how you hold the line." });
               refreshProfile();
               load();
             }}

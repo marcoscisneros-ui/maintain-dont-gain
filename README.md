@@ -73,7 +73,7 @@ Log in as usual. Admins see an **Admin** button at the top of Home (and on the p
 - **Rewards:** members who work out 4 different days in a week (Mon–Sun) earn a spin. Look up a certificate code (e.g. MDG-7K3Q) and tap **Mark redeemed** when they claim it. Add/edit prizes and their odds here.
 - **Classes:** which classes members take, average star ratings, and their comments (plus personal training).
 - **Recipes:** add, edit, or delete recipes and tips, with photos.
-- **Settings:** your headshot and title, GroupMe and class links, point values, daily point cap, dates, and an optional join code.
+- **Settings:** your headshot and title, GroupMe, Facebook group and class links, point values, daily point cap, dates, and an optional join code.
 
 ## Good to know
 - **Logins:** username is `first.lastname` (accents and apostrophes are dropped; a duplicate name gets a number, like `jane.doe2`). PINs are 4 digits. Staff can reset a forgotten PIN in the admin area (stage 4).

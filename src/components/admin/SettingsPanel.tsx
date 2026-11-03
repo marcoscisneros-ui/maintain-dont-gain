@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { loadSettings, type Settings } from "@/lib/settings";
 
 const KEYS = [
-  "coach_name", "coach_title", "coach_photo_url", "groupme_url", "class_url_ios", "class_url_android", "class_url", "join_code",
+  "coach_name", "coach_title", "coach_photo_url", "groupme_url", "facebook_url", "class_url_ios", "class_url_android", "class_url", "join_code",
   "points_home", "points_gym", "points_class", "points_pt", "class_names", "daily_point_cap", "spin_min_days", "start_date", "end_date",
 ] as const;
 type Key = (typeof KEYS)[number];
@@ -31,7 +31,7 @@ export function SettingsPanel() {
 
   async function save() {
     setError("");
-    for (const u of ["groupme_url", "class_url_ios", "class_url_android", "class_url"] as const)
+    for (const u of ["groupme_url", "facebook_url", "class_url_ios", "class_url_android", "class_url"] as const)
       if (s![u] && !/^https?:\/\//.test(s![u].trim())) return setError("Links need to start with https://");
     if (s!.start_date > s!.end_date) return setError("The start date has to be before the end date.");
     setBusy(true);
@@ -62,6 +62,9 @@ export function SettingsPanel() {
         <h3 className="font-semibold">Links</h3>
         <Field label="GroupMe invite link" hint="In GroupMe: open the group → Settings → Share group → copy link.">
           <Input {...bind("groupme_url")} placeholder="https://groupme.com/join_group/…" className="text-base" inputMode="url" autoCapitalize="none" />
+        </Field>
+        <Field label="Facebook community group link" hint={'Shown under "Encourage someone else to get their workout today" on Home and Crew.'}>
+          <Input {...bind("facebook_url")} placeholder="https://www.facebook.com/groups/…" className="text-base" inputMode="url" autoCapitalize="none" />
         </Field>
         <div className="space-y-3 rounded-2xl bg-card-2 p-4">
           <div>
