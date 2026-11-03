@@ -8,6 +8,7 @@ import { useToast } from "@/components/Toast";
 import { Button, ButtonLink, Card, Chip, ErrorText, Input, PageHeader, SectionTitle, cn } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useSettings } from "@/lib/settings";
+import { classLink } from "@/lib/classLink";
 import { addDays, formatDate, todayISO } from "@/lib/dates";
 import { LOCATIONS, pointValues, pointsForDay, type Location } from "@/lib/points";
 
@@ -136,8 +137,8 @@ export default function MovePage() {
 
         {loc && (
           <div className="fade space-y-4">
-            {loc === "class" && settings.class_url && (
-              <ButtonLink href={settings.class_url} external variant="secondary" className="w-full text-sm">
+            {loc === "class" && classLink(settings) && (
+              <ButtonLink href={classLink(settings)} external variant="secondary" className="w-full text-sm">
                 <CalendarPlus className="size-4" /> Book your next class
               </ButtonLink>
             )}

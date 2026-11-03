@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { ButtonLink, Card, Empty, PageHeader, SectionTitle, cn } from "@/components/ui";
 import { loadLeaderboard, ranks, type Row } from "@/lib/leaderboard";
 import { useSettings } from "@/lib/settings";
+import { classLink } from "@/lib/classLink";
 
 export default function CrewPage() {
   const { profile } = useAuth();
@@ -31,8 +32,8 @@ export default function CrewPage() {
             <MessageCircle className="size-4 text-brand" /> GroupMe
           </ButtonLink>
         ) : null}
-        {settings.class_url ? (
-          <ButtonLink href={settings.class_url} external variant="secondary" className="text-sm">
+        {classLink(settings) ? (
+          <ButtonLink href={classLink(settings)} external variant="secondary" className="text-sm">
             <CalendarPlus className="size-4 text-brand" /> Book a class
           </ButtonLink>
         ) : null}

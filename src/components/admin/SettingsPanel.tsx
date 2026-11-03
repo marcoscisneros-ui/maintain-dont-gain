@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { loadSettings, type Settings } from "@/lib/settings";
 
 const KEYS = [
-  "coach_name", "coach_title", "coach_photo_url", "groupme_url", "class_url", "join_code",
+  "coach_name", "coach_title", "coach_photo_url", "groupme_url", "class_url_ios", "class_url_android", "class_url", "join_code",
   "points_home", "points_gym", "points_class", "daily_point_cap", "start_date", "end_date",
 ] as const;
 type Key = (typeof KEYS)[number];
@@ -31,7 +31,7 @@ export function SettingsPanel() {
 
   async function save() {
     setError("");
-    for (const u of ["groupme_url", "class_url"] as const)
+    for (const u of ["groupme_url", "class_url_ios", "class_url_android", "class_url"] as const)
       if (s![u] && !/^https?:\/\//.test(s![u].trim())) return setError("Links need to start with https://");
     if (s!.start_date > s!.end_date) return setError("The start date has to be before the end date.");
     setBusy(true);
@@ -63,9 +63,24 @@ export function SettingsPanel() {
         <Field label="GroupMe invite link" hint="In GroupMe: open the group → Settings → Share group → copy link.">
           <Input {...bind("groupme_url")} placeholder="https://groupme.com/join_group/…" className="text-base" inputMode="url" autoCapitalize="none" />
         </Field>
-        <Field label="Book-a-class link" hint="Shown on the Crew tab and when someone logs a class.">
-          <Input {...bind("class_url")} placeholder="https://…" className="text-base" inputMode="url" autoCapitalize="none" />
-        </Field>
+        <div className="space-y-3 rounded-2xl bg-card-2 p-4">
+          <div>
+            <p className="font-medium">Book a class</p>
+            <p className="text-xs text-muted">
+              Members see one &quot;Book a class&quot; button. The app sends iPhones to the App Store link and Android phones to
+              the Google Play link automatically.
+            </p>
+          </div>
+          <Field label="🍎 iPhone (App Store link)">
+            <Input {...bind("class_url_ios")} placeholder="https://apps.apple.com/…" className="text-base" inputMode="url" autoCapitalize="none" />
+          </Field>
+          <Field label="🤖 Android (Google Play link)">
+            <Input {...bind("class_url_android")} placeholder="https://play.google.com/store/apps/…" className="text-base" inputMode="url" autoCapitalize="none" />
+          </Field>
+          <Field label="💻 Website (optional)" hint="Used on computers, or if a phone link is missing.">
+            <Input {...bind("class_url")} placeholder="https://…" className="text-base" inputMode="url" autoCapitalize="none" />
+          </Field>
+        </div>
       </Card>
 
       <Card className="space-y-4">

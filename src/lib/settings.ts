@@ -11,6 +11,8 @@ export type Settings = {
   coach_photo_url: string;
   groupme_url: string;
   class_url: string;
+  class_url_ios: string;
+  class_url_android: string;
   join_code?: string;
   points_home: string;
   points_gym: string;
@@ -26,6 +28,8 @@ export const DEFAULT_SETTINGS: Settings = {
   coach_photo_url: "",
   groupme_url: "",
   class_url: "",
+  class_url_ios: "",
+  class_url_android: "",
   points_home: "1",
   points_gym: "2",
   points_class: "3",
