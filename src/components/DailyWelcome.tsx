@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Lightbulb } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { Button } from "./ui";
+import { JingleBells, SeasonalFall } from "./Seasonal";
 import type { DailyItem } from "@/lib/daily";
 import type { ProgramStatus } from "@/lib/dates";
 
@@ -70,8 +71,10 @@ export function DailyWelcome({
       >
         <div className="relative overflow-hidden brand-gradient px-6 pt-6 pb-14 text-white">
           <div aria-hidden className="absolute -top-12 -right-10 size-44 rounded-full bg-white/10" />
-          <p className="text-xs font-semibold tracking-[0.18em] uppercase opacity-85">{badge}</p>
-          <p className="mt-2 text-[26px] leading-tight font-bold">Good to see you, {firstName}!</p>
+          <SeasonalFall count={14} />
+          <JingleBells size={64} className="absolute top-4 right-4 drop-shadow-md" />
+          <p className="relative pr-20 text-xs font-semibold tracking-[0.18em] uppercase opacity-85">{badge}</p>
+          <p className="relative mt-2 pr-20 text-[26px] leading-tight font-bold">Good to see you, {firstName}!</p>
         </div>
         <div className="relative -mt-10 px-5">
           <div className="rounded-3xl bg-card p-5 shadow-card ring-1 ring-line/60">
@@ -93,7 +96,7 @@ export function DailyWelcome({
               <p className="mt-1 leading-relaxed text-ink/90">{tip.body}</p>
             </div>
           )}
-          <Button className="mt-5 mb-6 w-full" onClick={close} autoFocus>
+          <Button className="mt-5 mb-6 w-full" onClick={close}>
             Let&apos;s go 💪
           </Button>
         </div>

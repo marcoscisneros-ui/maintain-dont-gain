@@ -1,4 +1,7 @@
+"use client";
+
 import { LogoMark, Wordmark } from "./Logo";
+import { JingleBells, SeasonalFall } from "./Seasonal";
 
 /** Shared look for the login / join screens. */
 export function AuthShell({ children, tagline }: { children: React.ReactNode; tagline?: string }) {
@@ -6,17 +9,23 @@ export function AuthShell({ children, tagline }: { children: React.ReactNode; ta
     <main className="relative mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-safe pb-safe">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-40 -z-10 h-96 opacity-25 blur-3xl brand-gradient"
+        className="pointer-events-none absolute inset-x-0 -top-40 z-0 h-96 opacity-25 blur-3xl brand-gradient"
         style={{ borderRadius: "50%" }}
       />
-      <div className="rise mt-12 mb-8">
-        <LogoMark size={52} />
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <SeasonalFall count={16} tone="page" />
+      </div>
+      <div className="rise relative z-10 mt-12 mb-8">
+        <div className="flex items-end gap-2">
+          <LogoMark size={52} />
+          <JingleBells size={44} />
+        </div>
         <Wordmark className="mt-5 text-[44px]" />
         <p className="mt-3 text-lg text-muted">
           {tagline ?? "Seven weeks. Every holiday. Zero pounds gained."}
         </p>
       </div>
-      <div className="rise pb-10" style={{ animationDelay: "80ms" }}>
+      <div className="rise relative z-10 pb-10" style={{ animationDelay: "80ms" }}>
         {children}
       </div>
     </main>

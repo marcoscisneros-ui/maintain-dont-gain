@@ -1,38 +1,40 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f5f4f1;
-  --card: #ffffff;
-  --card-2: #f0eeea;
-  --ink: #15141a;
-  --muted: #6b6a75;
-  --line: #e6e3de;
-  --brand: #ff4f2e;
-  --brand-2: #ff8a3d;
+  /* Holiday palette: cranberry → amber, evergreen pine, bell gold, frost blue, warm cream */
+  --bg: #f8f3ea;
+  --card: #fffdf9;
+  --card-2: #f2ebdf;
+  --ink: #1d1a17;
+  --muted: #74695e;
+  --line: #e8dfd1;
+  --brand: #c8283f;
+  --brand-2: #e8762c;
   --brand-ink: #ffffff;
-  --accent: #10b981;
-  --gold: #f5b100;
-  --violet: #7c5cff;
-  --danger: #e5484d;
-  --shadow: 0 1px 2px rgb(20 20 30 / 0.04), 0 8px 24px -12px rgb(20 20 30 / 0.12);
+  --accent: #1f8a5b;
+  --gold: #d9a21b;
+  --violet: #3f74c9;
+  --danger: #d6363c;
+  --shadow: 0 1px 2px rgb(60 30 20 / 0.05), 0 8px 24px -12px rgb(60 30 20 / 0.16);
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0d0d11;
-    --card: #17171d;
-    --card-2: #1f1f27;
-    --ink: #f4f3f0;
-    --muted: #9b99a6;
-    --line: #2a2a33;
-    --brand: #ff5f3f;
-    --brand-2: #ff9a52;
-    --accent: #34d399;
-    --gold: #ffc62e;
-    --violet: #9a85ff;
+    /* "winter night": deep pine */
+    --bg: #0b1210;
+    --card: #131c19;
+    --card-2: #1b2622;
+    --ink: #f3efe7;
+    --muted: #9aa69f;
+    --line: #26332e;
+    --brand: #e5485c;
+    --brand-2: #f29445;
+    --accent: #3fbf86;
+    --gold: #f2c14e;
+    --violet: #7fa8f0;
     --danger: #ff6b6f;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -12px rgb(0 0 0 / 0.65);
     color-scheme: dark;
   }
 }
@@ -99,3 +101,32 @@ input[type="number"] { -moz-appearance: textfield; }
 
 .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
 .pt-safe { padding-top: max(env(safe-area-inset-top), 0px); }
+
+/* ---------- seasonal decorations (leaves in fall, snow in winter) ---------- */
+@keyframes fall {
+  0%   { transform: translate3d(0, -12%, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: var(--o, 0.9); }
+  90%  { opacity: var(--o, 0.9); }
+  100% { transform: translate3d(var(--drift, 20px), 112%, 0) rotate(var(--spin, 180deg)); opacity: 0; }
+}
+/* each track is as tall as its container, so translateY(112%) carries the glyph past the bottom */
+.flake-track {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  animation: fall var(--dur, 9s) linear var(--delay, 0s) infinite;
+  will-change: transform;
+}
+.flake { display: block; line-height: 1; }
+@keyframes ring {
+  0%, 70%, 100% { transform: rotate(0deg); }
+  75% { transform: rotate(12deg); }
+  80% { transform: rotate(-10deg); }
+  85% { transform: rotate(7deg); }
+  90% { transform: rotate(-4deg); }
+}
+.jingle { transform-origin: 50% 8%; animation: ring 4.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .flake-layer { display: none; }
+  .jingle { animation: none; }
+}

@@ -12,6 +12,7 @@ import { useSettings } from "@/lib/settings";
 import { formatDate, greeting, programStatus, todayISO } from "@/lib/dates";
 import { loadDaily, welcomeFallback, type DailyItem } from "@/lib/daily";
 import { DailyWelcome } from "@/components/DailyWelcome";
+import { JingleBells, SeasonalFall } from "@/components/Seasonal";
 import { formatEventTime, lastSeenNews, loadAnnouncements, splitFeed, type Announcement } from "@/lib/content";
 import { pointsForDay } from "@/lib/points";
 import { loadLeaderboard, ranks } from "@/lib/leaderboard";
@@ -112,7 +113,9 @@ export default function HomePage() {
       >
         <div aria-hidden className="absolute -top-10 -right-10 size-40 rounded-full bg-white/10" />
         <div aria-hidden className="absolute -right-4 -bottom-16 size-32 rounded-full bg-white/10" />
-        <p className="text-xs font-semibold tracking-[0.18em] uppercase opacity-85">Maintain, Don&apos;t Gain</p>
+        <SeasonalFall count={12} />
+        <JingleBells size={58} className="absolute top-3 right-3 drop-shadow-md" />
+        <p className="relative pr-16 text-xs font-semibold tracking-[0.18em] uppercase opacity-85">Maintain, Don&apos;t Gain</p>
         {status.phase === "before" && (
           <>
             <p className="mt-2 text-3xl font-bold">
