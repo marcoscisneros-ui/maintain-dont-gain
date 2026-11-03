@@ -5,6 +5,8 @@ import { Lightbulb } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { Button } from "./ui";
 import { JingleBells, SeasonalFall } from "./Seasonal";
+import { HeartButton } from "./HeartButton";
+import type { HeartState } from "@/lib/engagement";
 import type { DailyItem } from "@/lib/daily";
 import type { ProgramStatus } from "@/lib/dates";
 
@@ -22,6 +24,8 @@ export function DailyWelcome({
   firstName,
   message,
   tip,
+  heart,
+  onHeart,
 }: {
   userId: string;
   date: string;
@@ -32,6 +36,8 @@ export function DailyWelcome({
   firstName: string;
   message: string;
   tip: DailyItem | null;
+  heart?: HeartState | null;
+  onHeart?: () => void;
 }) {
   const key = `mdg-welcome-${userId}-${date}`;
   const [open, setOpen] = useState(false);
@@ -86,6 +92,12 @@ export function DailyWelcome({
               </div>
             </div>
             <p className="mt-4 text-[17px] leading-relaxed whitespace-pre-line">{message}</p>
+            {heart && onHeart && (
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <span className="text-xs text-muted">Did this help today?</span>
+                <HeartButton state={heart} onToggle={onHeart} />
+              </div>
+            )}
           </div>
           {tip && (
             <div className="mt-3 rounded-3xl bg-gold/10 p-5">

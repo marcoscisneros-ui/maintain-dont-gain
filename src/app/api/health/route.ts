@@ -29,6 +29,8 @@ export async function GET() {
       report.members = members.error ? "unknown" : String(members.count ?? 0);
       const v = await sb.from("inbody_scans").select("visceral_fat", { head: true }).limit(1);
       report.height_and_visceral_update = v.error ? "MISSING ✗ (run 03_height_visceral.sql)" : "installed ✓";
+      const h = await sb.from("daily_engagement").select("content_id", { head: true }).limit(1);
+      report.hearts_update = h.error ? "MISSING ✗ (run 04_hearts.sql)" : "installed ✓";
     } catch (e) {
       report.database = `ERROR: ${(e as Error).message}`;
     }

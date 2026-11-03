@@ -12,6 +12,8 @@ import { useSettings } from "@/lib/settings";
 import { formatDate, greeting, programStatus, todayISO } from "@/lib/dates";
 import { loadDaily, welcomeFallback, type DailyItem } from "@/lib/daily";
 import { DailyWelcome } from "@/components/DailyWelcome";
+import { HeartButton } from "@/components/HeartButton";
+import { markSeenAndLoad, setHeart, type HeartState } from "@/lib/engagement";
 import { JingleBells, SeasonalFall } from "@/components/Seasonal";
 import { formatEventTime, lastSeenNews, loadAnnouncements, splitFeed, type Announcement } from "@/lib/content";
 import { pointsForDay } from "@/lib/points";
@@ -27,6 +29,7 @@ export default function HomePage() {
   const [rank, setRank] = useState<Rank>(null);
   const [feed, setFeed] = useState<{ latest: Announcement | null; nextEvent: Announcement | null; unseen: boolean } | null>(null);
   const [daily, setDaily] = useState<{ coach: DailyItem | null; tip: DailyItem | null } | null>(null);
+  const [heart, setHeartState] = useState<HeartState | null>(null);
 
   const date = todayISO();
   const status = settings ? programStatus(settings.start_date, settings.end_date, date) : null;
@@ -59,6 +62,25 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status?.day, status?.phase]);
 
+  // Record "seen" for today's message and load its hearts.
+  const coachId = daily?.coach?.id;
+  useEffect(() => {
+    if (!profile || !coachId) return;
+    markSeenAndLoad(profile.id, coachId).then(setHeartState).catch(() => {});
+  }, [profile, coachId]);
+
+  async function toggleHeart() {
+    if (!profile || !coachId || !heart) return;
+    const next = { hearted: !heart.hearted, count: Math.max(0, heart.count + (heart.hearted ? -1 : 1)) };
+    setHeartState(next);
+    try {
+      await setHeart(profile.id, coachId, next.hearted);
+      setHeartState(await markSeenAndLoad(profile.id, coachId)); // fresh count incl. everyone else's hearts
+    } catch {
+      setHeartState(heart); // undo on failure
+    }
+  }
+
   useEffect(() => {
     loadAnnouncements().then((all) => {
       const { events, news } = splitFeed(all);
@@ -84,6 +106,8 @@ export default function HomePage() {
           firstName={profile.first_name}
           message={coachMessage}
           tip={daily.tip}
+          heart={heart}
+          onHeart={toggleHeart}
         />
       )}
       {/* Header */}
@@ -172,6 +196,11 @@ export default function HomePage() {
         <p className="mt-4 text-[17px] leading-relaxed whitespace-pre-line">
           {coachMessage}
         </p>
+        {heart && (
+          <div className="mt-4 flex justify-end">
+            <HeartButton state={heart} onToggle={toggleHeart} />
+          </div>
+        )}
       </Card>
 
       {/* Tip of the day */}

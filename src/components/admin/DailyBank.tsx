@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, Lightbulb, MessageSquareQuote, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, Eye, Heart, Lightbulb, MessageSquareQuote, Plus } from "lucide-react";
+import { fetchAll } from "@/lib/admin";
 import { Sheet } from "@/components/Sheet";
 import { Button, Card, ErrorText, Field, Input, Textarea, cn } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
@@ -10,6 +11,8 @@ import { addDays, formatDate, programStatus, todayISO } from "@/lib/dates";
 import type { DailyItem } from "@/lib/daily";
 
 type Kind = "coach" | "tip";
+type Engagement = { content_id: number; user_id: string; hearted: boolean };
+type Stats = Map<number, { seen: number; hearts: number; hearters: string[] }>;
 
 export function DailyBank() {
   const settings = useSettings();
@@ -17,10 +20,32 @@ export function DailyBank() {
   const [items, setItems] = useState<DailyItem[] | null>(null);
   const [editing, setEditing] = useState<Partial<DailyItem> | null>(null);
   const [moving, setMoving] = useState(false);
+  const [stats, setStats] = useState<Stats>(new Map());
+  const [members, setMembers] = useState(0);
 
   const load = useCallback(async () => {
     const { data } = await supabase().from("daily_content").select("*").order("position").order("id");
     setItems((data ?? []) as DailyItem[]);
+    // who saw / hearted each message (fails quietly if 04_hearts.sql hasn't been run yet)
+    try {
+      const [eng, people] = await Promise.all([
+        fetchAll<Engagement>("daily_engagement", "content_id,user_id,hearted", "content_id"),
+        fetchAll<{ id: string; first_name: string; last_name: string }>("profiles", "id,first_name,last_name", "created_at"),
+      ]);
+      const name = new Map(people.map((p) => [p.id, `${p.first_name} ${p.last_name.slice(0, 1)}.`]));
+      const m: Stats = new Map();
+      for (const e of eng) {
+        const s = m.get(e.content_id) ?? { seen: 0, hearts: 0, hearters: [] };
+        s.seen++;
+        if (e.hearted) {
+          s.hearts++;
+          s.hearters.push(name.get(e.user_id) ?? "Someone");
+        }
+        m.set(e.content_id, s);
+      }
+      setStats(m);
+      setMembers(people.length);
+    } catch {}
   }, []);
   useEffect(() => {
     load();
@@ -79,6 +104,16 @@ export function DailyBank() {
                 </p>
                 {it.title && <p className="mt-1 font-semibold">{it.title}</p>}
                 <p className="mt-1 line-clamp-3 text-sm text-ink/85">{it.body}</p>
+                {kind === "coach" && stats.get(it.id) && (
+                  <p className="mt-2 flex items-center gap-3 text-xs font-semibold">
+                    <span className="flex items-center gap-1 text-muted">
+                      <Eye className="size-3.5" /> {stats.get(it.id)!.seen} seen
+                    </span>
+                    <span className="flex items-center gap-1 text-brand">
+                      <Heart className="size-3.5 fill-current" /> {stats.get(it.id)!.hearts}
+                    </span>
+                  </p>
+                )}
               </button>
               <div className="flex flex-col">
                 <button onClick={() => move(i, -1)} disabled={i === 0 || moving} className="rounded-lg p-1.5 text-muted disabled:opacity-25" aria-label="Move up">
@@ -96,6 +131,8 @@ export function DailyBank() {
       {editing && (
         <ItemForm
           item={editing}
+          stats={editing.id ? stats.get(editing.id) : undefined}
+          members={members}
           nextPosition={(list[list.length - 1]?.position ?? 0) + 1}
           onClose={() => setEditing(null)}
           onSaved={() => {
@@ -110,11 +147,15 @@ export function DailyBank() {
 
 function ItemForm({
   item,
+  stats,
+  members,
   nextPosition,
   onClose,
   onSaved,
 }: {
   item: Partial<DailyItem>;
+  stats?: { seen: number; hearts: number; hearters: string[] };
+  members: number;
   nextPosition: number;
   onClose: () => void;
   onSaved: () => void;
@@ -148,6 +189,20 @@ function ItemForm({
   return (
     <Sheet title={item.id ? (isTip ? "Edit tip" : "Edit message") : isTip ? "New tip" : "New message"} onClose={onClose}>
       <div className="space-y-4">
+        {!isTip && stats && (
+          <div className="rounded-2xl bg-card-2 p-4 text-sm">
+            <p className="flex items-center gap-4 font-semibold">
+              <span className="flex items-center gap-1.5">
+                <Eye className="size-4 text-muted" /> Seen by {stats.seen}
+                {members ? ` of ${members}` : ""}
+              </span>
+              <span className="flex items-center gap-1.5 text-brand">
+                <Heart className="size-4 fill-current" /> {stats.hearts} heart{stats.hearts === 1 ? "" : "s"}
+              </span>
+            </p>
+            {stats.hearters.length > 0 && <p className="mt-2 text-muted">❤️ {stats.hearters.join(", ")}</p>}
+          </div>
+        )}
         {isTip && (
           <Field label="Tip title">
             <Input value={title} onChange={(e) => setTitle(e.target.value)} className="text-base" placeholder="Protein at every meal" />

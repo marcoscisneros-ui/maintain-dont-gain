@@ -28,6 +28,9 @@ This adds the 49 daily messages, 49 tips, starter recipes, and a welcome announc
 ### 2c. Height + visceral fat update
 Run `supabase/03_height_visceral.sql` the same way. It's safe to run more than once.
 
+### 2d. Hearts update
+Run `supabase/04_hearts.sql` the same way (safe to run more than once). This adds the ❤️ and "seen" tracking on daily messages.
+
 ### 3. Lock down sign-ups (important)
 **Authentication → Sign In / Providers → Email** (or **Authentication → Settings**):
 - Turn **OFF** "Allow new users to sign up". (The app creates accounts itself. This stops anyone from going around it.)
@@ -57,7 +60,7 @@ From then on, every time code is pushed to GitHub, Vercel redeploys automaticall
 Log in as usual. Admins see an **Admin** button at the top of Home (and on the profile page).
 - **Members:** engagement (days logged, streak, last seen), points, InBody changes, progress photos. Tap a member to reset their PIN, make them staff/admin, or remove them. Download **Summary CSV** or **All logs CSV**.
 - **Posts:** announcements (can be pinned) and pop-up events with a date and time.
-- **Daily:** your daily messages and tips, one per day in list order. Edit, add, or reorder them with the arrows.
+- **Daily:** your daily messages and tips, one per day in list order. Edit, add, or reorder them with the arrows. Each message shows 👀 how many members saw it and ❤️ how many hearted it. Tap one to see who.
 - **Recipes:** add, edit, or delete recipes and tips, with photos.
 - **Settings:** your headshot and title, GroupMe and class links, point values, daily point cap, dates, and an optional join code.
 
