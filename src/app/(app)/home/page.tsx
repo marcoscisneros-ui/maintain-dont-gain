@@ -17,6 +17,7 @@ import { markSeenAndLoad, setHeart, type HeartState } from "@/lib/engagement";
 import { JingleBells, SeasonalFall } from "@/components/Seasonal";
 import { formatEventTime, lastSeenNews, loadAnnouncements, splitFeed, type Announcement } from "@/lib/content";
 import { pointsForDay } from "@/lib/points";
+import { useRewards } from "@/lib/useRewards";
 import { loadLeaderboard, ranks } from "@/lib/leaderboard";
 
 type Today = { calories: number; steps: number; points: number; weightChange: number | null };
@@ -30,6 +31,7 @@ export default function HomePage() {
   const [feed, setFeed] = useState<{ latest: Announcement | null; nextEvent: Announcement | null; unseen: boolean } | null>(null);
   const [daily, setDaily] = useState<{ coach: DailyItem | null; tip: DailyItem | null } | null>(null);
   const [heart, setHeartState] = useState<HeartState | null>(null);
+  const { state: rewards } = useRewards(profile, settings);
 
   const date = todayISO();
   const status = settings ? programStatus(settings.start_date, settings.end_date, date) : null;
@@ -269,6 +271,33 @@ export default function HomePage() {
                 <p className="font-semibold">{feed.latest.title}</p>
                 <p className="line-clamp-2 text-sm text-muted">{feed.latest.body.replace(/[#*-]/g, "").trim()}</p>
               </div>
+            )}
+          </Card>
+        </Link>
+      )}
+
+      {rewards && (
+        <Link href="/rewards" className="rise block">
+          <Card className="flex items-center gap-4 active:scale-[0.99] transition">
+            <span className="flex size-12 items-center justify-center rounded-2xl bg-brand/12 text-2xl">🎡</span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">
+                {rewards.available.length > 0 ? "You've got a spin waiting!" : "Weekly prize wheel"}
+              </p>
+              <div className="mt-1.5 flex items-center gap-1.5">
+                {Array.from({ length: rewards.minDays }, (_, i) => (
+                  <span key={i} className={`h-2 flex-1 rounded-full ${i < rewards.thisWeek.days.length ? "brand-gradient" : "bg-card-2"}`} />
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-muted">
+                {Math.min(rewards.thisWeek.days.length, rewards.minDays)} of {rewards.minDays} workout days this week
+                {rewards.spins.some((s) => !s.redeemed_at) ? " · 🎁 prize to claim" : ""}
+              </p>
+            </div>
+            {rewards.available.length > 0 ? (
+              <span className="rounded-full brand-gradient px-3 py-1.5 text-xs font-bold text-white">SPIN</span>
+            ) : (
+              <ChevronRight className="size-5 text-muted" />
             )}
           </Card>
         </Link>

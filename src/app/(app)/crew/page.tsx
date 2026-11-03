@@ -44,6 +44,9 @@ export default function CrewPage() {
         <ButtonLink href="/news" variant="secondary" className="text-sm">
           <Megaphone className="size-4 text-violet" /> News & events
         </ButtonLink>
+        <ButtonLink href="/rewards" variant="secondary" className="col-span-2 text-sm">
+          🎡 Weekly prize wheel
+        </ButtonLink>
         <ButtonLink href="/library" variant="secondary" className="text-sm">
           <BookOpen className="size-4 text-accent" /> Recipes & tips
         </ButtonLink>

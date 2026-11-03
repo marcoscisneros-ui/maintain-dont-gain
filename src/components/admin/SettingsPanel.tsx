@@ -8,7 +8,7 @@ import { loadSettings, type Settings } from "@/lib/settings";
 
 const KEYS = [
   "coach_name", "coach_title", "coach_photo_url", "groupme_url", "class_url_ios", "class_url_android", "class_url", "join_code",
-  "points_home", "points_gym", "points_class", "points_pt", "class_names", "daily_point_cap", "start_date", "end_date",
+  "points_home", "points_gym", "points_class", "points_pt", "class_names", "daily_point_cap", "spin_min_days", "start_date", "end_date",
 ] as const;
 type Key = (typeof KEYS)[number];
 
@@ -99,6 +99,9 @@ export function SettingsPanel() {
             <Input {...bind("points_pt")} type="number" inputMode="numeric" suffix="pts" />
           </Field>
         </div>
+        <Field label="Workout days per week to earn a prize-wheel spin" hint="Counts different days, Monday–Sunday.">
+          <Input {...bind("spin_min_days")} type="number" inputMode="numeric" suffix="days" />
+        </Field>
         <Field label="Max points per day" hint="Stops anyone from logging 10 workouts in one day. 0 = no limit.">
           <Input {...bind("daily_point_cap")} type="number" inputMode="numeric" suffix="pts" />
         </Field>

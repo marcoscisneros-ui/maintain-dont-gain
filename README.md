@@ -34,6 +34,9 @@ Run `supabase/04_hearts.sql` the same way (safe to run more than once). This add
 ### 2e. Levels, personal training & class ratings update
 Run `supabase/05_tiers_classes.sql` the same way (safe to run more than once). Adds Free / Gold / Diamond levels, personal-training workouts (5 pts), and class names + ratings.
 
+### 2f. Prize wheel update
+Run `supabase/06_rewards.sql` the same way (safe to run more than once). Adds the weekly prize wheel, certificates, and 5 starter prizes (edit them in Admin → Rewards).
+
 ### 3. Lock down sign-ups (important)
 **Authentication → Sign In / Providers → Email** (or **Authentication → Settings**):
 - Turn **OFF** "Allow new users to sign up". (The app creates accounts itself. This stops anyone from going around it.)
@@ -64,6 +67,7 @@ Log in as usual. Admins see an **Admin** button at the top of Home (and on the p
 - **Members:** engagement (days logged, streak, last seen), points, InBody changes, progress photos. Levels: Free / 🥇 Gold (4 PT sessions) / 💎 Diamond (8). Gold and Diamond show as pending until you tap **Confirm** after they pay; use **+1 session** after each personal training session. Tap a member to reset their PIN, make them staff/admin, or remove them. Download **Summary CSV** or **All logs CSV**.
 - **Posts:** announcements (can be pinned) and pop-up events with a date and time.
 - **Daily:** your daily messages and tips, one per day in list order. Edit, add, or reorder them with the arrows. Each message shows 👀 how many members saw it and ❤️ how many hearted it. Tap one to see who.
+- **Rewards:** members who work out 4 different days in a week (Mon–Sun) earn a spin. Look up a certificate code (e.g. MDG-7K3Q) and tap **Mark redeemed** when they claim it. Add/edit prizes and their odds here.
 - **Classes:** which classes members take, average star ratings, and their comments (plus personal training).
 - **Recipes:** add, edit, or delete recipes and tips, with photos.
 - **Settings:** your headshot and title, GroupMe and class links, point values, daily point cap, dates, and an optional join code.
