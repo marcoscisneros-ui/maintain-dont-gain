@@ -25,7 +25,7 @@ export function useRewards(profile: Profile | null, settings: Settings | null) {
     const [w, s, p] = await Promise.all([
       sb.from("workouts").select("date").eq("user_id", profile.id),
       sb.from("spins").select("*").eq("user_id", profile.id).order("created_at", { ascending: false }),
-      sb.from("prizes").select("id,name,weight,active").order("id"),
+      sb.from("prizes").select("id,name,weight,active,slots,emoji,short_name").order("id"),
     ]);
     if (s.error || p.error) return; // rewards update not installed yet: hide quietly
     const dates = (w.data ?? []).map((x) => x.date as string);

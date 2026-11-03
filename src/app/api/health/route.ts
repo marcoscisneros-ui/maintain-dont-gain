@@ -35,6 +35,8 @@ export async function GET() {
       report.tiers_and_classes_update = t.error ? "MISSING ✗ (run 05_tiers_classes.sql)" : "installed ✓";
       const r = await sb.from("prizes").select("id", { head: true }).limit(1);
       report.rewards_update = r.error ? "MISSING ✗ (run 06_rewards.sql)" : "installed ✓";
+      const w = await sb.from("prizes").select("slots", { head: true }).limit(1);
+      report.prize_list_update = w.error ? "MISSING ✗ (run 07_wheel_prizes.sql)" : "installed ✓";
     } catch (e) {
       report.database = `ERROR: ${(e as Error).message}`;
     }

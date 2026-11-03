@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { fetchAll } from "@/lib/admin";
 import { formatDate } from "@/lib/dates";
 import { timeAgo } from "@/lib/content";
-import type { Prize, Spin } from "@/lib/rewards";
+import { prizeShare, type Prize, type Spin } from "@/lib/rewards";
 
 /** Front desk: look up a certificate code, mark prizes redeemed, and set up the wheel. */
 export function Rewards() {
@@ -26,7 +26,7 @@ export function Rewards() {
     try {
       const [s, p, people] = await Promise.all([
         fetchAll<Spin>("spins", "*", "id"),
-        fetchAll<Prize>("prizes", "id,name,weight,active", "id"),
+        fetchAll<Prize>("prizes", "id,name,weight,active,slots,emoji,short_name", "id"),
         fetchAll<{ id: string; first_name: string; last_name: string }>("profiles", "id,first_name,last_name", "created_at"),
       ]);
       setSpins(s.reverse());
@@ -99,7 +99,7 @@ export function Rewards() {
           {shown.map((s) => (
             <Card key={s.id} className="p-4">
               <div className="flex items-start gap-3">
-                <span className="text-2xl">🎁</span>
+                <span className="text-2xl">{prizes.find((p) => p.id === s.prize_id)?.emoji ?? "🎁"}</span>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">{s.prize_name}</p>
                   <p className="text-sm">{names.get(s.user_id) ?? "Member"}</p>
@@ -131,19 +131,23 @@ export function Rewards() {
 }
 
 function PrizeEditor({ prizes, onChanged }: { prizes: Prize[]; onChanged: () => void }) {
-  const [name, setName] = useState("");
-  const [weight, setWeight] = useState("10");
+  const [adding, setAdding] = useState({ name: "", short_name: "", emoji: "🎁", slots: "1", weight: "5" });
   const [error, setError] = useState("");
-  const total = prizes.filter((p) => p.active).reduce((s, p) => s + p.weight, 0);
+  const total = prizes.reduce((s, p) => s + prizeShare(p), 0);
   const sb = () => supabase().from("prizes");
 
   async function add() {
     setError("");
-    if (!name.trim()) return setError("Name the prize.");
-    const { error } = await sb().insert({ name: name.trim(), weight: Math.max(0, Number(weight) || 0) });
+    if (!adding.name.trim()) return setError("Name the prize.");
+    const { error } = await sb().insert({
+      name: adding.name.trim(),
+      short_name: adding.short_name.trim() || null,
+      emoji: adding.emoji.trim() || "🎁",
+      slots: Math.min(6, Math.max(1, Number(adding.slots) || 1)),
+      weight: Math.max(0, Number(adding.weight) || 0),
+    });
     if (error) return setError(error.message);
-    setName("");
-    setWeight("10");
+    setAdding({ name: "", short_name: "", emoji: "🎁", slots: "1", weight: "5" });
     onChanged();
   }
   async function update(p: Prize, patch: Partial<Prize>) {
@@ -157,42 +161,96 @@ function PrizeEditor({ prizes, onChanged }: { prizes: Prize[]; onChanged: () => 
     onChanged();
   }
 
+  const small = "h-10 rounded-xl bg-card-2 text-center ring-1 ring-line outline-none focus:ring-2 focus:ring-brand";
+
   return (
     <Card className="space-y-3">
       <div>
         <h3 className="font-semibold">Prizes on the wheel</h3>
-        <p className="text-xs text-muted">&quot;Weight&quot; sets the odds: a prize with 30 is three times as likely as one with 10. The wheel slices match.</p>
+        <p className="text-xs text-muted">
+          <b>Times</b> = how many slices it gets around the wheel. <b>Size</b> = how wide each slice is. The chance shown is exactly how much of the wheel it covers.
+        </p>
       </div>
       <ul className="divide-y divide-line">
-        {prizes.map((p) => (
-          <li key={p.id} className={cn("flex items-center gap-2 py-2.5", !p.active && "opacity-50")}>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{p.name}</p>
-              <p className="text-xs text-muted">{p.active && total ? `${Math.round((p.weight / total) * 100)}% chance` : "off the wheel"}</p>
-            </div>
-            <input
-              type="number"
-              inputMode="numeric"
-              defaultValue={p.weight}
-              aria-label={`Weight for ${p.name}`}
-              onBlur={(e) => Number(e.target.value) !== p.weight && update(p, { weight: Math.max(0, Number(e.target.value) || 0) })}
-              className="h-10 w-16 rounded-xl bg-card-2 text-center ring-1 ring-line outline-none focus:ring-2 focus:ring-brand"
-            />
-            <div className="w-12">
-              <Toggle checked={p.active} onChange={(v) => update(p, { active: v })} label="" />
-            </div>
-            <button onClick={() => remove(p)} className="p-2 text-muted" aria-label={`Remove ${p.name}`}>
-              <Trash2 className="size-4" />
-            </button>
-          </li>
-        ))}
+        {[...prizes]
+          .sort((a, b) => prizeShare(b) - prizeShare(a))
+          .map((p) => (
+            <li key={p.id} className={cn("space-y-2 py-3", !p.active && "opacity-50")}>
+              <div className="flex items-center gap-2">
+                <input
+                  defaultValue={p.emoji ?? "🎁"}
+                  aria-label={`Emoji for ${p.name}`}
+                  onBlur={(e) => e.target.value !== p.emoji && update(p, { emoji: e.target.value.trim() || "🎁" })}
+                  className={cn(small, "w-11 text-xl")}
+                />
+                <div className="min-w-0 flex-1">
+                  <input
+                    defaultValue={p.name}
+                    aria-label="Prize name"
+                    onBlur={(e) => e.target.value.trim() && e.target.value !== p.name && update(p, { name: e.target.value.trim() })}
+                    className="w-full bg-transparent text-sm font-semibold outline-none"
+                  />
+                  <input
+                    defaultValue={p.short_name ?? ""}
+                    placeholder="Short wheel label (optional)"
+                    aria-label="Wheel label"
+                    onBlur={(e) => e.target.value !== (p.short_name ?? "") && update(p, { short_name: e.target.value.trim() || null })}
+                    className="w-full bg-transparent text-xs text-muted outline-none"
+                  />
+                </div>
+                <span className="w-12 text-right text-sm font-bold">{p.active && total ? `${((prizeShare(p) / total) * 100).toFixed(0)}%` : "off"}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted">
+                <label className="flex items-center gap-1">
+                  Times
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={6}
+                    defaultValue={p.slots ?? 1}
+                    onBlur={(e) => Number(e.target.value) !== p.slots && update(p, { slots: Math.min(6, Math.max(1, Number(e.target.value) || 1)) })}
+                    className={cn(small, "w-12 text-sm text-ink")}
+                  />
+                </label>
+                <label className="flex items-center gap-1">
+                  Size
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    defaultValue={p.weight}
+                    onBlur={(e) => Number(e.target.value) !== p.weight && update(p, { weight: Math.max(0, Number(e.target.value) || 0) })}
+                    className={cn(small, "w-14 text-sm text-ink")}
+                  />
+                </label>
+                <div className="ml-auto flex items-center gap-1">
+                  <div className="w-12">
+                    <Toggle checked={p.active} onChange={(v) => update(p, { active: v })} label="" />
+                  </div>
+                  <button onClick={() => remove(p)} className="p-2" aria-label={`Remove ${p.name}`}>
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
       </ul>
-      <div className="flex gap-2">
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="New prize" className="text-base" />
-        <Input value={weight} onChange={(e) => setWeight(e.target.value)} type="number" inputMode="numeric" className="w-20 text-center text-base" aria-label="Weight" />
-        <Button onClick={add} className="px-4" aria-label="Add prize">
-          <Plus className="size-5" />
-        </Button>
+      <div className="space-y-2 rounded-2xl bg-card-2 p-3">
+        <p className="text-sm font-semibold">Add a prize</p>
+        <div className="flex gap-2">
+          <input value={adding.emoji} onChange={(e) => setAdding({ ...adding, emoji: e.target.value })} aria-label="Emoji" className={cn(small, "w-12 bg-card text-xl")} />
+          <Input value={adding.name} onChange={(e) => setAdding({ ...adding, name: e.target.value })} placeholder="Prize name" className="bg-card text-base" />
+        </div>
+        <Input value={adding.short_name} onChange={(e) => setAdding({ ...adding, short_name: e.target.value })} placeholder="Short wheel label (optional)" className="h-10 bg-card text-sm" />
+        <div className="flex items-center justify-end gap-2 text-xs text-muted">
+          Times
+          <input type="number" value={adding.slots} onChange={(e) => setAdding({ ...adding, slots: e.target.value })} className={cn(small, "w-12 bg-card text-sm text-ink")} />
+          Size
+          <input type="number" value={adding.weight} onChange={(e) => setAdding({ ...adding, weight: e.target.value })} className={cn(small, "w-12 bg-card text-sm text-ink")} />
+          <Button onClick={add} className="min-h-10 px-3" aria-label="Add prize">
+            <Plus className="size-5" />
+          </Button>
+        </div>
       </div>
       <ErrorText>{error}</ErrorText>
     </Card>

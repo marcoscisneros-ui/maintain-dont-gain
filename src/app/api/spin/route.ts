@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     sb.from("settings").select("key,value").in("key", ["start_date", "end_date", "spin_min_days"]),
     sb.from("workouts").select("date").eq("user_id", userId),
     sb.from("spins").select("week_start").eq("user_id", userId),
-    sb.from("prizes").select("id,name,weight,active"),
+    sb.from("prizes").select("id,name,weight,active,slots,emoji,short_name"),
   ]);
   if (settings.error || workouts.error || spins.error || prizes.error) return fail("Couldn't load your workouts. Try again.", 500);
 

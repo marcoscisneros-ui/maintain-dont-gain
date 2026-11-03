@@ -37,6 +37,9 @@ Run `supabase/05_tiers_classes.sql` the same way (safe to run more than once). A
 ### 2f. Prize wheel update
 Run `supabase/06_rewards.sql` the same way (safe to run more than once). Adds the weekly prize wheel, certificates, and 5 starter prizes (edit them in Admin → Rewards).
 
+### 2g. Prize list update
+Run `supabase/07_wheel_prizes.sql` the same way (safe to run more than once). Loads the real prize list and lets a prize appear several times on the wheel.
+
 ### 3. Lock down sign-ups (important)
 **Authentication → Sign In / Providers → Email** (or **Authentication → Settings**):
 - Turn **OFF** "Allow new users to sign up". (The app creates accounts itself. This stops anyone from going around it.)

@@ -3,7 +3,7 @@ import type { Spin } from "@/lib/rewards";
 import { JingleBells } from "./Seasonal";
 
 /** The prize certificate a member shows at the front desk. */
-export function Certificate({ spin, name }: { spin: Spin; name: string }) {
+export function Certificate({ spin, name, emoji = "🎁" }: { spin: Spin; name: string; emoji?: string }) {
   const redeemed = !!spin.redeemed_at;
   return (
     <div className="relative overflow-hidden rounded-3xl bg-[#fffaf0] p-1.5 text-[#2a2118] shadow-card">
@@ -15,7 +15,7 @@ export function Certificate({ spin, name }: { spin: Spin; name: string }) {
           <p className="mt-4 text-sm text-[#74695e]">Awarded to</p>
           <p className="text-xl font-bold">{name}</p>
           <p className="mt-4 text-sm text-[#74695e]">for 4+ workout days the week of {formatDate(spin.week_start, { month: "long", day: "numeric" })}</p>
-          <p className="mt-3 rounded-2xl bg-[#c8283f]/8 px-4 py-3 text-lg leading-snug font-bold text-[#c8283f]">🎁 {spin.prize_name}</p>
+          <p className="mt-3 rounded-2xl bg-[#c8283f]/8 px-4 py-3 text-lg leading-snug font-bold text-[#c8283f]">{emoji} {spin.prize_name}</p>
           <p className="mt-4 font-mono text-3xl font-bold tracking-[0.15em]">{spin.code}</p>
           <p className="mt-3 text-sm font-semibold">
             {redeemed ? (

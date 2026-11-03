@@ -5,14 +5,15 @@ import { useEffect, useState } from "react";
 import { ChevronLeft, Lock } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { Certificate } from "@/components/Certificate";
-import { PrizeWheel, rotationFor } from "@/components/PrizeWheel";
+import { Confetti, PrizeWheel, rotationFor } from "@/components/PrizeWheel";
 import { Sheet } from "@/components/Sheet";
 import { Button, Card, Empty, ErrorText, PageHeader, SectionTitle, cn } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useSettings } from "@/lib/settings";
 import { useRewards } from "@/lib/useRewards";
 import { addDays, formatDate, todayISO } from "@/lib/dates";
-import type { Spin } from "@/lib/rewards";
+import { buildWheel, type Spin } from "@/lib/rewards";
+import { useMemo } from "react";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
 
@@ -27,6 +28,10 @@ export default function RewardsPage() {
   const [viewing, setViewing] = useState<Spin | null>(null);
   const [error, setError] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [winner, setWinner] = useState<number | null>(null);
+  const [party, setParty] = useState(false);
+  const slices = useMemo(() => buildWheel(state?.prizes ?? []), [state?.prizes]);
+  const emojiFor = (sp: Spin) => state?.prizes.find((p) => p.id === sp.prize_id)?.emoji ?? "🎁";
 
   useEffect(() => {
     setReduceMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -49,13 +54,17 @@ export default function RewardsPage() {
       setError(json.error ?? "Something went wrong. Try again.");
       return;
     }
-    const wait = reduceMotion ? 300 : 5000;
-    setRotation(rotationFor(state.prizes, json.prize.id, rotation));
+    setWinner(null);
+    const target = rotationFor(slices, json.prize.id, rotation);
+    setRotation(target.rotation);
     setTimeout(() => {
       setSpinning(false);
-      setWon(json.spin as Spin);
+      setWinner(target.index);
+      setParty(true);
+      setTimeout(() => setWon(json.spin as Spin), reduceMotion ? 0 : 900);
+      setTimeout(() => setParty(false), 2600);
       reload();
-    }, wait);
+    }, reduceMotion ? 300 : 5400);
   }
 
   return (
@@ -107,7 +116,14 @@ export default function RewardsPage() {
           {/* Wheel */}
           <Card className="rise overflow-hidden" style={{ animationDelay: "40ms" }}>
             <div className="py-2">
-              <PrizeWheel prizes={state.prizes} rotation={rotation} spinning={spinning && !reduceMotion} />
+              <PrizeWheel
+                slices={slices}
+                rotation={rotation}
+                spinning={spinning && !reduceMotion}
+                canSpin={state.available.length > 0}
+                onSpin={spin}
+                winner={winner}
+              />
             </div>
             <ErrorText>{error}</ErrorText>
             {state.available.length > 0 ? (
@@ -134,7 +150,7 @@ export default function RewardsPage() {
                 {state.spins.map((s) => (
                   <button key={s.id} onClick={() => setViewing(s)} className="block w-full text-left">
                     <Card className="flex items-center gap-3 p-4 transition active:scale-[0.99]">
-                      <span className="text-2xl">🎁</span>
+                      <span className="text-2xl">{emojiFor(s)}</span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-semibold">{s.prize_name}</p>
                         <p className="text-xs text-muted">
@@ -158,9 +174,14 @@ export default function RewardsPage() {
         </>
       )}
 
+      {party && <Confetti />}
       {won && (
-        <Sheet title="🎉 You won!" onClose={() => setWon(null)}>
-          <Certificate spin={won} name={name} />
+        <Sheet title="🎉 Winner!" onClose={() => setWon(null)}>
+          <div className="prize-pop mb-4 text-center">
+            <p className="bg-gradient-to-r from-[#ff3d5a] via-[#ff9f1a] to-[#ffd23f] bg-clip-text text-4xl font-black tracking-tight text-transparent">YOU WON!</p>
+            <p className="mt-1 text-6xl">{emojiFor(won)}</p>
+          </div>
+          <Certificate spin={won} name={name} emoji={emojiFor(won)} />
           <p className="mt-4 text-center text-sm text-muted">Saved in My certificates. Show it at the front desk anytime.</p>
           <Button className="mt-4 w-full" onClick={() => setWon(null)}>
             Awesome!
@@ -169,7 +190,7 @@ export default function RewardsPage() {
       )}
       {viewing && (
         <Sheet title="Certificate" onClose={() => setViewing(null)}>
-          <Certificate spin={viewing} name={name} />
+          <Certificate spin={viewing} name={name} emoji={emojiFor(viewing)} />
         </Sheet>
       )}
     </div>
