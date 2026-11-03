@@ -50,6 +50,14 @@ From then on, every time code is pushed to GitHub, Vercel redeploys automaticall
 
 ---
 
+## Running the challenge (admin)
+Log in as usual. Admins see an **Admin** button at the top of Home (and on the profile page).
+- **Members:** engagement (days logged, streak, last seen), points, InBody changes, progress photos. Tap a member to reset their PIN, make them staff/admin, or remove them. Download **Summary CSV** or **All logs CSV**.
+- **Posts:** announcements (can be pinned) and pop-up events with a date and time.
+- **Daily:** your daily messages and tips, one per day in list order. Edit, add, or reorder them with the arrows.
+- **Recipes:** add, edit, or delete recipes and tips, with photos.
+- **Settings:** your headshot and title, GroupMe and class links, point values, daily point cap, dates, and an optional join code.
+
 ## Good to know
 - **Logins:** username is `first.lastname` (accents and apostrophes are dropped; a duplicate name gets a number, like `jane.doe2`). PINs are 4 digits. Staff can reset a forgotten PIN in the admin area (stage 4).
 - **Privacy:** database rules (Row Level Security) make sure members only ever see their own logs, weights, and photos. Admins can see everyone's. The leaderboard only shows first name, last initial, photo, and points.

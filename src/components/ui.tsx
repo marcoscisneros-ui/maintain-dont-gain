@@ -184,3 +184,35 @@ export function FullScreenLoader() {
     </div>
   );
 }
+
+export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
+  function Textarea({ className, ...rest }, ref) {
+    return (
+      <textarea
+        ref={ref}
+        className={cn(
+          "min-h-32 w-full rounded-2xl bg-card-2 px-4 py-3 text-base leading-relaxed text-ink ring-1 ring-line outline-none transition placeholder:text-muted/60 focus:ring-2 focus:ring-brand",
+          className,
+        )}
+        {...rest}
+      />
+    );
+  },
+);
+
+export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center justify-between gap-3 py-1 text-left"
+    >
+      <span className="font-medium">{label}</span>
+      <span className={cn("relative h-7 w-12 rounded-full transition", checked ? "bg-brand" : "bg-line")}>
+        <span className={cn("absolute top-0.5 size-6 rounded-full bg-white shadow transition-all", checked ? "left-[22px]" : "left-0.5")} />
+      </span>
+    </button>
+  );
+}

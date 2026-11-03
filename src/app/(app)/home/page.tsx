@@ -93,9 +93,16 @@ export default function HomePage() {
             {greeting()}, {profile.first_name}
           </h1>
         </div>
+        <div className="flex items-center gap-2">
+        {profile.is_admin && (
+          <Link href="/admin" className="rounded-full bg-violet/12 px-3 py-1.5 text-xs font-bold text-violet ring-1 ring-violet/25">
+            Admin
+          </Link>
+        )}
         <Link href="/me" aria-label="My profile">
           <Avatar url={profile.avatar_url} name={`${profile.first_name} ${profile.last_name}`} size={48} />
         </Link>
+        </div>
       </header>
 
       {/* Program progress */}

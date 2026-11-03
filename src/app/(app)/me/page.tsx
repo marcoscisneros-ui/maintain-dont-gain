@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Button, Card, ErrorText, Field, Input, PageHeader } from "@/components/ui";
@@ -61,6 +62,19 @@ export default function MePage() {
           <span className="mt-2 rounded-full bg-violet/15 px-3 py-1 text-xs font-semibold text-violet">Admin</span>
         )}
       </Card>
+
+      {profile.is_admin && (
+        <Link
+          href="/admin"
+          className="rise mt-4 flex items-center gap-4 rounded-3xl bg-violet/12 p-5 ring-1 ring-violet/25 transition active:scale-[0.99]"
+        >
+          <ShieldCheck className="size-7 text-violet" />
+          <div>
+            <p className="font-semibold">Admin area</p>
+            <p className="text-sm text-muted">Members, posts, daily messages, settings</p>
+          </div>
+        </Link>
+      )}
 
       <form onSubmit={save} className="mt-4">
         <Card className="rise space-y-5" style={{ animationDelay: "60ms" }}>

@@ -53,3 +53,40 @@ export function greeting(now: Date = new Date()): string {
   if (h < 17) return "Good afternoon";
   return "Good evening";
 }
+
+/** Minutes between Central time and UTC at a given instant (e.g. -360 in winter). */
+function tzOffsetMinutes(utcMs: number): number {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: TZ,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
+      .formatToParts(new Date(utcMs))
+      .map((p) => [p.type, p.value]),
+  );
+  const asUTC = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+  return Math.round((asUTC - utcMs) / 60000);
+}
+
+/** "2026-11-25T17:30" typed as San Angelo time → ISO timestamp. */
+export function centralToISO(local: string): string {
+  const [d, t = "00:00"] = local.split("T");
+  const [y, m, dd] = d.split("-").map(Number);
+  const [hh, mi] = t.split(":").map(Number);
+  const guess = Date.UTC(y, m - 1, dd, hh, mi);
+  let ms = guess - tzOffsetMinutes(guess) * 60000;
+  ms = guess - tzOffsetMinutes(ms) * 60000; // correct across DST changes
+  return new Date(ms).toISOString();
+}
+
+/** ISO timestamp → "YYYY-MM-DDTHH:mm" in San Angelo time (for datetime inputs). */
+export function isoToCentralLocal(iso: string): string {
+  const ms = Date.parse(iso);
+  return new Date(ms + tzOffsetMinutes(ms) * 60000).toISOString().slice(0, 16);
+}
