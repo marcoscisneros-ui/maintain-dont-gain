@@ -5,6 +5,7 @@ import { addDays, todayISO } from "./dates";
 import { pointsForDay } from "./points";
 import { compressImage } from "./image";
 import type { Settings } from "./settings";
+import { TIERS } from "./tiers";
 
 /** Supabase returns at most 1,000 rows per request, so page through everything. */
 export async function fetchAll<T>(table: string, select: string, orderBy: string): Promise<T[]> {
@@ -21,7 +22,7 @@ export async function fetchAll<T>(table: string, select: string, orderBy: string
 
 export type Meal = { user_id: string; date: string; name: string; calories: number; protein: number | null; carbs: number | null; fat: number | null };
 export type Steps = { user_id: string; date: string; steps: number };
-export type Workout = { user_id: string; date: string; location: string; activity: string; minutes: number | null; notes: string | null };
+export type Workout = { user_id: string; date: string; location: string; activity: string; minutes: number | null; notes: string | null; rating: number | null };
 export type Scan = { id: number; user_id: string; date: string; weight: number; body_fat_pct: number | null; smm: number | null; visceral_fat: number | null; photo_path: string | null };
 
 export type AllData = { profiles: Profile[]; meals: Meal[]; steps: Steps[]; workouts: Workout[]; scans: Scan[] };
@@ -31,7 +32,7 @@ export async function loadAllData(): Promise<AllData> {
     fetchAll<Profile>("profiles", "*", "created_at"),
     fetchAll<Meal>("meals", "user_id,date,name,calories,protein,carbs,fat", "id"),
     fetchAll<Steps>("daily_steps", "user_id,date,steps", "date"),
-    fetchAll<Workout>("workouts", "user_id,date,location,activity,minutes,notes", "id"),
+    fetchAll<Workout>("workouts", "user_id,date,location,activity,minutes,notes,rating", "id"),
     fetchAll<Scan>("inbody_scans", "*", "id"),
   ]);
   return { profiles, meals, steps, workouts, scans };
@@ -134,10 +135,12 @@ export function downloadCSV(filename: string, csv: string) {
 
 export function summaryCSV(stats: MemberStats[]): string {
   return toCSV(
-    ["First name", "Last name", "Username", "Admin", "Joined", "Last seen", "Height (in)", "Points", "Workouts", "Days logged", "Current streak",
+    ["First name", "Last name", "Username", "Tier", "Tier status", "PT sessions used", "PT sessions total", "Admin", "Joined", "Last seen", "Height (in)", "Points", "Workouts", "Days logged", "Current streak",
      "Start weight (lbs)", "Latest weight (lbs)", "Weight change (lbs)", "Body fat change (%)", "SMM change (lbs)", "Visceral fat change", "Calorie target", "Step goal"],
     stats.map((s) => [
-      s.profile.first_name, s.profile.last_name, s.profile.username, s.profile.is_admin ? "yes" : "",
+      s.profile.first_name, s.profile.last_name, s.profile.username,
+      TIERS[s.profile.tier ?? "free"].label, s.profile.tier_status ?? "confirmed", s.profile.sessions_used ?? 0, TIERS[s.profile.tier ?? "free"].sessions,
+      s.profile.is_admin ? "yes" : "",
       s.profile.created_at.slice(0, 10), s.profile.last_seen_at.slice(0, 16).replace("T", " "), s.profile.height_in,
       s.points, s.workouts, s.daysLogged, s.streak,
       s.firstScan?.weight ?? s.profile.start_weight, s.lastScan?.weight ?? "", s.weightChange, s.bodyFatChange, s.smmChange, s.visceralChange,
@@ -151,17 +154,21 @@ export function logsCSV(d: AllData): string {
   const rows: unknown[][] = [];
   for (const m of d.meals) rows.push([...name.get(m.user_id)!, m.date, "Food", m.name, m.calories, m.protein, m.carbs, m.fat, "", "", "", "", "", "", ""]);
   for (const s of d.steps) rows.push([...name.get(s.user_id)!, s.date, "Steps", "", "", "", "", "", s.steps, "", "", "", "", "", ""]);
-  for (const w of d.workouts) rows.push([...name.get(w.user_id)!, w.date, "Workout", [w.activity, w.notes].filter(Boolean).join(" – "), "", "", "", "", "", w.location, w.minutes, "", "", "", ""]);
+  for (const w of d.workouts) rows.push([...name.get(w.user_id)!, w.date, "Workout", [w.activity, w.notes].filter(Boolean).join(" – "), "", "", "", "", "", w.location, w.minutes, "", "", "", "", w.rating]);
   for (const s of d.scans) rows.push([...name.get(s.user_id)!, s.date, "Weigh-in", "", "", "", "", "", "", "", "", s.weight, s.body_fat_pct, s.smm, s.visceral_fat]);
   rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])) || String(a[2]).localeCompare(String(b[2])));
   return toCSV(
-    ["Member", "Username", "Date", "Type", "Description", "Calories", "Protein (g)", "Carbs (g)", "Fat (g)", "Steps", "Workout location", "Minutes", "Weight (lbs)", "Body fat (%)", "SMM (lbs)", "Visceral fat"],
+    ["Member", "Username", "Date", "Type", "Description", "Calories", "Protein (g)", "Carbs (g)", "Fat (g)", "Steps", "Workout location", "Minutes", "Weight (lbs)", "Body fat (%)", "SMM (lbs)", "Visceral fat", "Rating (1-5)"],
     rows,
   );
 }
 
 // ---------- server actions (PIN reset, admin, remove) ----------
-export async function adminAction(action: "reset_pin" | "set_admin" | "delete_member", userId: string, extra: { pin?: string; value?: boolean } = {}) {
+export async function adminAction(
+  action: "reset_pin" | "set_admin" | "delete_member" | "set_tier" | "adjust_sessions",
+  userId: string,
+  extra: { pin?: string; value?: boolean; tier?: string; status?: string; delta?: number } = {},
+) {
   const { data } = await supabase().auth.getSession();
   const res = await fetch("/api/admin", {
     method: "POST",
@@ -170,6 +177,7 @@ export async function adminAction(action: "reset_pin" | "set_admin" | "delete_me
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error ?? "Something went wrong");
+  return json;
 }
 
 /** Upload an image for posts / recipes / coach photo to the public "content" bucket. */

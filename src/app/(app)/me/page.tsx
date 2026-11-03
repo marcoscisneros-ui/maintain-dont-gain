@@ -9,6 +9,8 @@ import { AvatarPicker } from "@/components/AvatarPicker";
 import { Button, Card, ErrorText, Field, Input, PageHeader } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { HeightInput, isValidHeight } from "@/components/HeightInput";
+import { TierBadge } from "@/components/TierBadge";
+import { TIERS, sessionsLeft } from "@/lib/tiers";
 
 export default function MePage() {
   const router = useRouter();
@@ -64,6 +66,34 @@ export default function MePage() {
         </p>
         {profile.is_admin && (
           <span className="mt-2 rounded-full bg-violet/15 px-3 py-1 text-xs font-semibold text-violet">Admin</span>
+        )}
+      </Card>
+
+      <Card className="rise mt-4" style={{ animationDelay: "30ms" }}>
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">My level</h2>
+          <TierBadge tier={profile.tier ?? "free"} pending={profile.tier_status === "pending"} showFree />
+        </div>
+        {profile.tier_status === "pending" ? (
+          <p className="mt-2 text-sm text-muted">
+            Stop by the front desk to pay for {TIERS[profile.tier].label}. Staff will activate it, and your personal training sessions will show up here.
+          </p>
+        ) : sessionsLeft(profile) != null ? (
+          <>
+            <p className="mt-3 text-3xl font-bold">
+              {sessionsLeft(profile)} <span className="text-base font-semibold text-muted">of {TIERS[profile.tier].sessions} personal training sessions left</span>
+            </p>
+            <div className="mt-3 flex gap-1.5">
+              {Array.from({ length: TIERS[profile.tier].sessions }, (_, i) => (
+                <span key={i} className={`h-2 flex-1 rounded-full ${i < profile.sessions_used ? "bg-line" : "brand-gradient"}`} />
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-muted">Staff update this after each session. Log each one on the Move tab for points.</p>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-muted">
+            Want a coach in your corner? 🥇 <b>Gold</b> adds 4 personal training sessions and 💎 <b>Diamond</b> adds 8. Ask at the front desk.
+          </p>
         )}
       </Card>
 

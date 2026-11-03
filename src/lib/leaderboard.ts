@@ -1,6 +1,7 @@
 "use client";
 
 import { supabase } from "./supabase";
+import type { Tier } from "./tiers";
 
 export type Row = {
   user_id: string;
@@ -10,6 +11,7 @@ export type Row = {
   points: number;
   workouts: number;
   active_days: number;
+  tier?: Tier;
 };
 
 export async function loadLeaderboard(): Promise<Row[]> {

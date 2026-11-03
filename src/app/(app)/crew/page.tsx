@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
 import { ButtonLink, Card, Empty, PageHeader, SectionTitle, cn } from "@/components/ui";
 import { loadLeaderboard, ranks, type Row } from "@/lib/leaderboard";
+import { TierBadge } from "@/components/TierBadge";
 import { useSettings } from "@/lib/settings";
 import { classLink } from "@/lib/classLink";
 
@@ -100,7 +101,7 @@ export default function CrewPage() {
                   <Avatar url={r.avatar_url} name={`${r.first_name} ${r.last_initial}`} size={38} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">
-                      {r.first_name} {r.last_initial}.{me && <span className="text-brand"> (you)</span>}
+                      {r.first_name} {r.last_initial}.{me && <span className="text-brand"> (you)</span>} {r.tier && <TierBadge tier={r.tier} />}
                     </p>
                     <p className="text-xs text-muted">
                       {r.workouts} workout{r.workouts === 1 ? "" : "s"} · {r.active_days} active day{r.active_days === 1 ? "" : "s"}
@@ -120,6 +121,7 @@ export default function CrewPage() {
           <li className="flex justify-between"><span>🏠 Workout at home</span><b>{settings.points_home} pt</b></li>
           <li className="flex justify-between"><span>🏋️ Workout at the gym</span><b>{settings.points_gym} pts</b></li>
           <li className="flex justify-between"><span>🔥 Take a class</span><b>{settings.points_class} pts</b></li>
+          <li className="flex justify-between"><span>🤝 Personal training session</span><b>{settings.points_pt || 5} pts</b></li>
         </ul>
         {Number(settings.daily_point_cap) > 0 && (
           <p className="mt-3 text-muted">Max {settings.daily_point_cap} points per day. Consistency beats cramming.</p>

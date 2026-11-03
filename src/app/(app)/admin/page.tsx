@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronLeft, Megaphone, MessageSquareQuote, Settings2, Users } from "lucide-react";
+import { BookOpen, ChevronLeft, Flame, Megaphone, MessageSquareQuote, Settings2, Users } from "lucide-react";
+import { Classes } from "@/components/admin/Classes";
 import { useAuth } from "@/components/AuthProvider";
 import { PageHeader, cn } from "@/components/ui";
 import { Members } from "@/components/admin/Members";
@@ -15,6 +16,7 @@ const TABS = [
   { id: "members", label: "Members", Icon: Users },
   { id: "posts", label: "Posts", Icon: Megaphone },
   { id: "daily", label: "Daily", Icon: MessageSquareQuote },
+  { id: "classes", label: "Classes", Icon: Flame },
   { id: "library", label: "Recipes", Icon: BookOpen },
   { id: "settings", label: "Settings", Icon: Settings2 },
 ] as const;
@@ -55,13 +57,13 @@ export default function AdminPage() {
       </div>
 
       <div className="sticky top-0 z-20 -mx-4 mb-4 bg-bg/90 px-4 py-2 backdrop-blur-xl pt-safe">
-        <div className="grid grid-cols-5 gap-1 rounded-2xl bg-card-2 p-1 ring-1 ring-line">
+        <div className="grid grid-cols-6 gap-0.5 rounded-2xl bg-card-2 p-1 ring-1 ring-line">
           {TABS.map(({ id, label, Icon }) => (
             <button
               key={id}
               onClick={() => pick(id)}
               className={cn(
-                "flex flex-col items-center gap-0.5 rounded-xl py-2 text-[11px] font-semibold transition",
+                "flex min-w-0 flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-semibold transition",
                 tab === id ? "bg-card text-brand shadow-card" : "text-muted",
               )}
             >
@@ -76,6 +78,7 @@ export default function AdminPage() {
         {tab === "members" && <Members />}
         {tab === "posts" && <Posts />}
         {tab === "daily" && <DailyBank />}
+        {tab === "classes" && <Classes />}
         {tab === "library" && <Library />}
         {tab === "settings" && <SettingsPanel />}
       </div>

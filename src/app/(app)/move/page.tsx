@@ -11,8 +11,10 @@ import { useSettings } from "@/lib/settings";
 import { classLink } from "@/lib/classLink";
 import { addDays, formatDate, todayISO } from "@/lib/dates";
 import { LOCATIONS, pointValues, pointsForDay, type Location } from "@/lib/points";
+import { StarRating } from "@/components/StarRating";
+import { sessionsLeft } from "@/lib/tiers";
 
-type Workout = { id: number; date: string; location: Location; activity: string; minutes: number | null; notes: string | null };
+type Workout = { id: number; date: string; location: Location; activity: string; minutes: number | null; notes: string | null; rating: number | null };
 const ACTIVITIES = ["Strength", "Cardio", "Walk / Run", "Cycling", "HIIT", "Yoga / Stretch", "Sports", "Other"];
 const MINUTES = [15, 30, 45, 60, 90];
 
@@ -28,6 +30,9 @@ export default function MovePage() {
   const [activity, setActivity] = useState("Strength");
   const [minutes, setMinutes] = useState<number | null>(45);
   const [notes, setNotes] = useState("");
+  const [className, setClassName] = useState("");
+  const [otherClass, setOtherClass] = useState("");
+  const [rating, setRating] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -53,6 +58,8 @@ export default function MovePage() {
 
   if (!profile || !settings) return null;
   const pv = pointValues(settings);
+  const classNames = (settings.class_names || "").split(",").map((c) => c.trim()).filter(Boolean);
+  const left = sessionsLeft(profile);
   const dayWorkouts = week.workouts.filter((w) => w.date === date);
   const dayPoints = pointsForDay(dayWorkouts.map((w) => w.location), date, settings);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -81,10 +88,14 @@ export default function MovePage() {
   async function logWorkout() {
     setError("");
     if (!loc) return setError("Where did you work out?");
+    const what =
+      loc === "class" ? (className === "Other" ? otherClass.trim() : className) : loc === "pt" ? "Personal training" : activity;
+    if (loc === "class" && !what) return setError("Which class did you take?");
     setBusy(true);
+    const rated = loc === "class" || loc === "pt";
     const { error } = await supabase()
       .from("workouts")
-      .insert({ date, location: loc, activity, minutes, notes: notes.trim() || null });
+      .insert({ date, location: loc, activity: what, minutes, notes: notes.trim() || null, rating: rated ? rating : null });
     setBusy(false);
     if (error) return setError("Couldn't save. Check your connection.");
     const after = pointsForDay([...dayWorkouts.map((w) => w.location), loc], date, settings!);
@@ -92,6 +103,9 @@ export default function MovePage() {
     toast.show(gained > 0 ? `Nice work! +${gained} pt${gained === 1 ? "" : "s"} 💪` : "Workout logged ✓");
     setLoc(null);
     setNotes("");
+    setClassName("");
+    setOtherClass("");
+    setRating(null);
     load();
   }
 
@@ -117,12 +131,12 @@ export default function MovePage() {
         >
           Log a workout
         </SectionTitle>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {LOCATIONS.map((l) => (
             <button
               key={l.id}
               type="button"
-              onClick={() => setLoc(l.id)}
+              onClick={() => { setLoc(l.id); setError(""); }}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-2xl px-2 py-4 ring-1 transition active:scale-[0.97]",
                 loc === l.id ? "bg-brand/10 ring-2 ring-brand" : "bg-card-2 ring-line",
@@ -142,16 +156,39 @@ export default function MovePage() {
                 <CalendarPlus className="size-4" /> Book your next class
               </ButtonLink>
             )}
-            <div>
-              <p className="mb-2 text-sm font-medium text-muted">What did you do?</p>
-              <div className="flex flex-wrap gap-2">
-                {ACTIVITIES.map((a) => (
-                  <Chip key={a} selected={activity === a} onClick={() => setActivity(a)}>
-                    {a}
-                  </Chip>
-                ))}
+            {loc === "class" && (
+              <div>
+                <p className="mb-2 text-sm font-medium text-muted">Which class?</p>
+                <div className="flex flex-wrap gap-2">
+                  {[...classNames, "Other"].map((c) => (
+                    <Chip key={c} selected={className === c} onClick={() => { setClassName(c); setError(""); }}>
+                      {c}
+                    </Chip>
+                  ))}
+                </div>
+                {className === "Other" && (
+                  <Input value={otherClass} onChange={(e) => setOtherClass(e.target.value)} placeholder="Class name" className="fade mt-2 text-base" autoFocus />
+                )}
               </div>
-            </div>
+            )}
+            {loc === "pt" && left != null && (
+              <p className="rounded-2xl bg-gold/12 px-4 py-3 text-sm font-medium">
+                {profile.tier === "diamond" ? "💎" : "🥇"} You have <b>{left}</b> personal training session{left === 1 ? "" : "s"} left. Staff
+                update this after each session.
+              </p>
+            )}
+            {(loc === "home" || loc === "gym") && (
+              <div>
+                <p className="mb-2 text-sm font-medium text-muted">What did you do?</p>
+                <div className="flex flex-wrap gap-2">
+                  {ACTIVITIES.map((a) => (
+                    <Chip key={a} selected={activity === a} onClick={() => setActivity(a)}>
+                      {a}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <p className="mb-2 text-sm font-medium text-muted">How long?</p>
               <div className="flex flex-wrap gap-2">
@@ -162,7 +199,20 @@ export default function MovePage() {
                 ))}
               </div>
             </div>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes (optional)" className="text-base" />
+            {(loc === "class" || loc === "pt") && (
+              <div>
+                <p className="mb-2 text-sm font-medium text-muted">
+                  How was it? <span className="font-normal">(optional)</span>
+                </p>
+                <StarRating value={rating} onChange={setRating} />
+              </div>
+            )}
+            <Input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={loc === "class" || loc === "pt" ? "Comments for the coach (optional)" : "Notes (optional)"}
+              className="text-base"
+            />
           </div>
         )}
         <ErrorText>{error}</ErrorText>
@@ -184,6 +234,7 @@ export default function MovePage() {
                     {w.activity}
                     {w.minutes ? <span className="text-muted"> · {w.minutes} min</span> : null}
                   </p>
+                  {w.rating != null && <StarRating value={w.rating} size={13} />}
                   {w.notes && <p className="truncate text-xs text-muted">{w.notes}</p>}
                 </div>
                 <button onClick={() => remove(w.id)} className="rounded-lg p-2 text-muted active:text-danger" aria-label="Delete">

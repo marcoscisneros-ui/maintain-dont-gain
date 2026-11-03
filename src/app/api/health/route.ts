@@ -31,6 +31,8 @@ export async function GET() {
       report.height_and_visceral_update = v.error ? "MISSING ✗ (run 03_height_visceral.sql)" : "installed ✓";
       const h = await sb.from("daily_engagement").select("content_id", { head: true }).limit(1);
       report.hearts_update = h.error ? "MISSING ✗ (run 04_hearts.sql)" : "installed ✓";
+      const t = await sb.from("profiles").select("tier", { head: true }).limit(1);
+      report.tiers_and_classes_update = t.error ? "MISSING ✗ (run 05_tiers_classes.sql)" : "installed ✓";
     } catch (e) {
       report.database = `ERROR: ${(e as Error).message}`;
     }

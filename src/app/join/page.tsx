@@ -9,6 +9,8 @@ import { PinInput } from "@/components/PinInput";
 import { Button, ErrorText, Field, Input } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { isValidPin, namePart, pinToPassword, usernameToEmail } from "@/lib/username";
+import { TIERS, TIER_ORDER, type Tier } from "@/lib/tiers";
+import { cn } from "@/components/ui";
 
 export default function JoinPage() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function JoinPage() {
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
   const [code, setCode] = useState("");
+  const [tier, setTier] = useState<Tier>("free");
   const [codeRequired, setCodeRequired] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -46,7 +49,7 @@ export default function JoinPage() {
     const res = await fetch("/api/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstName: first, lastName: last, pin, code }),
+      body: JSON.stringify({ firstName: first, lastName: last, pin, code, tier }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -71,6 +74,11 @@ export default function JoinPage() {
           <p className="mt-3 text-sm text-muted">
             Screenshot this. You&apos;ll log in with this name and your 4-digit PIN.
           </p>
+          {tier !== "free" && (
+            <p className="mt-3 rounded-xl bg-gold/12 px-3 py-2 text-sm font-medium">
+              {TIERS[tier].emoji} {TIERS[tier].label} is pending. Stop by the front desk to pay and staff will activate it.
+            </p>
+          )}
           <Button className="mt-6 w-full" onClick={() => router.replace("/setup")}>
             Set up my profile
           </Button>
@@ -103,6 +111,36 @@ export default function JoinPage() {
             <PinInput value={pin2} onChange={setPin2} autoFocus />
           </div>
         )}
+        <div>
+          <span className="mb-1.5 block text-sm font-medium text-muted">Choose your level</span>
+          <div className="space-y-2" role="radiogroup" aria-label="Challenge level">
+            {TIER_ORDER.map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="radio"
+                aria-checked={tier === t}
+                onClick={() => setTier(t)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left ring-1 transition active:scale-[0.99]",
+                  tier === t ? "bg-brand/8 ring-2 ring-brand" : "bg-card-2 ring-line",
+                )}
+              >
+                <span className="text-2xl">{TIERS[t].emoji}</span>
+                <span className="flex-1">
+                  <span className="block font-semibold">{TIERS[t].label}</span>
+                  <span className="block text-xs text-muted">{TIERS[t].blurb}</span>
+                </span>
+                <span className={cn("size-5 shrink-0 rounded-full ring-2", tier === t ? "bg-brand ring-brand shadow-[inset_0_0_0_3px_var(--card)]" : "ring-line")} />
+              </button>
+            ))}
+          </div>
+          {tier !== "free" && (
+            <p className="fade mt-2 text-xs text-muted">
+              Pay for {TIERS[tier].label} at the front desk. Staff will confirm it in the app. Until then it shows as pending.
+            </p>
+          )}
+        </div>
         {codeRequired && (
           <Field label="Challenge code" hint="Get this from the front desk.">
             <Input value={code} onChange={(e) => setCode(e.target.value)} autoCapitalize="characters" />

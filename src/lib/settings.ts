@@ -17,6 +17,8 @@ export type Settings = {
   points_home: string;
   points_gym: string;
   points_class: string;
+  points_pt: string;
+  class_names: string;
   daily_point_cap: string;
 };
 
@@ -33,6 +35,8 @@ export const DEFAULT_SETTINGS: Settings = {
   points_home: "1",
   points_gym: "2",
   points_class: "3",
+  points_pt: "5",
+  class_names: "Cycle, HIIT, Strength, Bootcamp, Yoga, Pilates, Boxing, Dance, Core, Stretch",
   daily_point_cap: "5",
 };
 

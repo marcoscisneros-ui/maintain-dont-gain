@@ -17,6 +17,9 @@ create table public.profiles (
   step_goal       int  not null default 8000,
   onboarded       boolean not null default false,
   is_admin        boolean not null default false,
+  tier            text not null default 'free' check (tier in ('free','gold','diamond')),
+  tier_status     text not null default 'confirmed' check (tier_status in ('pending','confirmed')),
+  sessions_used   int  not null default 0 check (sessions_used >= 0),
   created_at      timestamptz not null default now(),
   last_seen_at    timestamptz not null default now()
 );
@@ -47,10 +50,11 @@ create table public.workouts (
   id         bigint generated always as identity primary key,
   user_id    uuid not null references public.profiles on delete cascade default auth.uid(),
   date       date not null,
-  location   text not null check (location in ('home','gym','class')),
+  location   text not null check (location in ('home','gym','class','pt')),
   activity   text not null,                      -- e.g. "Strength", "Cycling class"
   minutes    int  check (minutes >= 0 and minutes < 1000),
   notes      text,
+  rating     int check (rating between 1 and 5),
   created_at timestamptz not null default now()
 );
 create index on public.workouts (user_id, date);

@@ -27,7 +27,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  let body: { firstName?: string; lastName?: string; pin?: string; code?: string };
+  let body: { firstName?: string; lastName?: string; pin?: string; code?: string; tier?: string };
   try {
     body = await req.json();
   } catch {
@@ -37,6 +37,7 @@ export async function POST(req: Request) {
   const firstName = (body.firstName ?? "").trim().slice(0, 40);
   const lastName = (body.lastName ?? "").trim().slice(0, 40);
   const pin = (body.pin ?? "").trim();
+  const tier = ["free", "gold", "diamond"].includes(body.tier ?? "") ? body.tier! : "free";
   const first = namePart(firstName);
   const last = namePart(lastName);
 
@@ -81,6 +82,9 @@ export async function POST(req: Request) {
     first_name: firstName,
     last_name: lastName,
     is_admin: (count ?? 0) === 0,
+    tier,
+    // Gold / Diamond are paid at the front desk, so staff confirm them in the admin area.
+    tier_status: tier === "free" ? "confirmed" : "pending",
   });
   if (pErr) {
     await sb.auth.admin.deleteUser(created.user.id);

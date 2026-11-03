@@ -31,6 +31,9 @@ Run `supabase/03_height_visceral.sql` the same way. It's safe to run more than o
 ### 2d. Hearts update
 Run `supabase/04_hearts.sql` the same way (safe to run more than once). This adds the ❤️ and "seen" tracking on daily messages.
 
+### 2e. Levels, personal training & class ratings update
+Run `supabase/05_tiers_classes.sql` the same way (safe to run more than once). Adds Free / Gold / Diamond levels, personal-training workouts (5 pts), and class names + ratings.
+
 ### 3. Lock down sign-ups (important)
 **Authentication → Sign In / Providers → Email** (or **Authentication → Settings**):
 - Turn **OFF** "Allow new users to sign up". (The app creates accounts itself. This stops anyone from going around it.)
@@ -58,9 +61,10 @@ From then on, every time code is pushed to GitHub, Vercel redeploys automaticall
 
 ## Running the challenge (admin)
 Log in as usual. Admins see an **Admin** button at the top of Home (and on the profile page).
-- **Members:** engagement (days logged, streak, last seen), points, InBody changes, progress photos. Tap a member to reset their PIN, make them staff/admin, or remove them. Download **Summary CSV** or **All logs CSV**.
+- **Members:** engagement (days logged, streak, last seen), points, InBody changes, progress photos. Levels: Free / 🥇 Gold (4 PT sessions) / 💎 Diamond (8). Gold and Diamond show as pending until you tap **Confirm** after they pay; use **+1 session** after each personal training session. Tap a member to reset their PIN, make them staff/admin, or remove them. Download **Summary CSV** or **All logs CSV**.
 - **Posts:** announcements (can be pinned) and pop-up events with a date and time.
 - **Daily:** your daily messages and tips, one per day in list order. Edit, add, or reorder them with the arrows. Each message shows 👀 how many members saw it and ❤️ how many hearted it. Tap one to see who.
+- **Classes:** which classes members take, average star ratings, and their comments (plus personal training).
 - **Recipes:** add, edit, or delete recipes and tips, with photos.
 - **Settings:** your headshot and title, GroupMe and class links, point values, daily point cap, dates, and an optional join code.
 

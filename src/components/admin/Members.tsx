@@ -8,6 +8,9 @@ import { Sheet } from "@/components/Sheet";
 import { Button, Card, Chip, Empty, ErrorText, Input, cn } from "@/components/ui";
 import { PinInput } from "@/components/PinInput";
 import { formatHeight } from "@/components/HeightInput";
+import { TierBadge } from "@/components/TierBadge";
+import { TIERS, TIER_ORDER, type Tier } from "@/lib/tiers";
+import { Minus } from "lucide-react";
 import { useSettings } from "@/lib/settings";
 import { formatDate, todayISO } from "@/lib/dates";
 import { timeAgo } from "@/lib/content";
@@ -40,7 +43,9 @@ export function Members() {
   const [error, setError] = useState("");
   const [sort, setSort] = useState<SortKey>("points");
   const [q, setQ] = useState("");
+  const [tierFilter, setTierFilter] = useState<"all" | "pending" | Tier>("all");
   const [open, setOpen] = useState<MemberStats | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   const load = useCallback(async () => {
     setError("");
@@ -58,8 +63,11 @@ export function Members() {
   const stats = useMemo(() => (data && settings ? computeStats(data, settings) : []), [data, settings]);
 
   const shown = useMemo(() => {
-    const s = stats.filter((m) =>
-      `${m.profile.first_name} ${m.profile.last_name} ${m.profile.username}`.toLowerCase().includes(q.toLowerCase()),
+    const s = stats.filter(
+      (m) =>
+        `${m.profile.first_name} ${m.profile.last_name} ${m.profile.username}`.toLowerCase().includes(q.toLowerCase()) &&
+        (tierFilter === "all" ||
+          (tierFilter === "pending" ? m.profile.tier_status === "pending" : m.profile.tier === tierFilter)),
     );
     const cmp: Record<SortKey, (a: MemberStats, b: MemberStats) => number> = {
       points: (a, b) => b.points - a.points || b.daysLogged - a.daysLogged,
@@ -70,7 +78,7 @@ export function Members() {
       name: (a, b) => a.profile.first_name.localeCompare(b.profile.first_name),
     };
     return s.sort(cmp[sort]);
-  }, [stats, sort, q]);
+  }, [stats, sort, q, tierFilter]);
 
   if (error) return <ErrorText>{error}</ErrorText>;
   if (!data || !settings) return <div className="h-64 animate-pulse rounded-3xl bg-card" />;
@@ -80,6 +88,8 @@ export function Members() {
   const seenToday = stats.filter((s) => s.profile.last_seen_at.slice(0, 10) >= today).length;
   const holding = stats.filter((s) => s.weightChange != null && s.weightChange <= 1).length;
   const withScans = stats.filter((s) => s.weightChange != null).length;
+  const pending = stats.filter((s) => s.profile.tier_status === "pending").length;
+  const tierCount = (t: Tier) => stats.filter((s) => s.profile.tier === t && s.profile.tier_status === "confirmed").length;
 
   return (
     <div className="space-y-4">
@@ -89,6 +99,28 @@ export function Members() {
         <Stat label="Total workouts" value={data.workouts.length} />
         <Stat label="Holding steady" value={withScans ? `${holding}/${withScans}` : "–"} sub="within 1 lb of start" />
       </div>
+
+      <Card className="p-4">
+        <p className="mb-3 text-sm font-semibold">Levels</p>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          {TIER_ORDER.map((t) => (
+            <button key={t} onClick={() => setTierFilter(tierFilter === t ? "all" : t)} className={cn("rounded-2xl py-2.5 ring-1", tierFilter === t ? "bg-ink text-bg ring-ink" : "bg-card-2 ring-line")}>
+              <p className="text-xl font-bold">{tierCount(t)}</p>
+              <p className="text-xs">
+                {TIERS[t].emoji} {TIERS[t].label}
+              </p>
+            </button>
+          ))}
+        </div>
+        {pending > 0 && (
+          <button
+            onClick={() => setTierFilter(tierFilter === "pending" ? "all" : "pending")}
+            className={cn("mt-2 w-full rounded-2xl px-4 py-2.5 text-sm font-semibold ring-1", tierFilter === "pending" ? "bg-gold text-white ring-gold" : "bg-gold/12 text-gold ring-gold/30")}
+          >
+            {pending} waiting for confirmation{tierFilter === "pending" ? " (showing)" : " · tap to see"}
+          </button>
+        )}
+      </Card>
 
       <div className="grid grid-cols-2 gap-2">
         <Button variant="secondary" className="text-sm" onClick={() => downloadCSV(`mdg-participants-${today}.csv`, summaryCSV(shown))}>
@@ -128,7 +160,8 @@ export function Members() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">
                       {m.profile.first_name} {m.profile.last_name}
-                      {m.profile.is_admin && <ShieldCheck className="ml-1 inline size-4 text-violet" />}
+                      {m.profile.is_admin && <ShieldCheck className="ml-1 inline size-4 text-violet" />}{" "}
+                      <TierBadge tier={m.profile.tier} pending={m.profile.tier_status === "pending"} />
                     </p>
                     <p className="truncate text-xs text-muted">
                       {m.daysLogged}d logged ·{" "}
@@ -152,7 +185,14 @@ export function Members() {
       {open && (
         <MemberSheet
           m={open}
-          onClose={() => setOpen(null)}
+          onDirty={() => setDirty(true)}
+          onClose={() => {
+            setOpen(null);
+            if (dirty) {
+              setDirty(false);
+              load();
+            }
+          }}
           onChanged={() => {
             setOpen(null);
             load();
@@ -183,7 +223,7 @@ function WeightBadge({ v }: { v: number | null }) {
   );
 }
 
-function MemberSheet({ m, onClose, onChanged }: { m: MemberStats; onClose: () => void; onChanged: () => void }) {
+function MemberSheet({ m, onClose, onChanged, onDirty }: { m: MemberStats; onClose: () => void; onChanged: () => void; onDirty: () => void }) {
   const { profile: me } = useAuth();
   const p = m.profile;
   const name = `${p.first_name} ${p.last_name}`;
@@ -248,6 +288,8 @@ function MemberSheet({ m, onClose, onChanged }: { m: MemberStats; onClose: () =>
           </div>
         ))}
       </div>
+
+      <TierControls m={m} onChanged={onDirty} />
 
       <h3 className="mt-6 mb-2 font-semibold">Weigh-ins & InBody</h3>
       {m.scans.length === 0 ? (
@@ -353,6 +395,90 @@ function Change({ label, v, unit, goodDown }: { label: string; v: number | null;
         {v != null && <span className="text-[10px]"> {unit}</span>}
       </p>
       <p className="text-[11px] text-muted">{label}</p>
+    </div>
+  );
+}
+
+function TierControls({ m, onChanged }: { m: MemberStats; onChanged: () => void }) {
+  const p = m.profile;
+  const [tier, setTier] = useState<Tier>(p.tier ?? "free");
+  const [status, setStatus] = useState(p.tier_status ?? "confirmed");
+  const [used, setUsed] = useState(p.sessions_used ?? 0);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const total = TIERS[tier].sessions;
+
+  async function saveTier(next: Tier, nextStatus: "pending" | "confirmed") {
+    setBusy(true);
+    setErr("");
+    try {
+      await adminAction("set_tier", p.id, { tier: next, status: nextStatus });
+      setTier(next);
+      setStatus(next === "free" ? "confirmed" : nextStatus);
+      onChanged();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function adjust(delta: 1 | -1) {
+    setBusy(true);
+    setErr("");
+    try {
+      const r = await adminAction("adjust_sessions", p.id, { delta });
+      setUsed(r.sessions_used);
+      onChanged();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-2xl bg-card-2 p-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold">Level</h3>
+        <TierBadge tier={tier} pending={status === "pending"} showFree />
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-card p-1 ring-1 ring-line">
+        {TIER_ORDER.map((t) => (
+          <button
+            key={t}
+            disabled={busy}
+            onClick={() => t !== tier && saveTier(t, "confirmed")}
+            className={cn("min-h-10 rounded-lg text-sm font-semibold", tier === t ? "bg-ink text-bg" : "text-muted")}
+          >
+            {TIERS[t].emoji} {TIERS[t].label}
+          </button>
+        ))}
+      </div>
+      {status === "pending" && (
+        <Button className="mt-3 w-full" loading={busy} onClick={() => saveTier(tier, "confirmed")}>
+          ✓ Paid. Confirm {TIERS[tier].label}
+        </Button>
+      )}
+      {total > 0 && status === "confirmed" && (
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="font-semibold">Personal training</p>
+            <p className="text-sm text-muted">
+              {used} of {total} used · <b className={used >= total ? "text-brand" : "text-accent"}>{Math.max(0, total - used)} left</b>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => adjust(-1)} disabled={busy || used === 0} aria-label="Undo one session" className="flex size-10 items-center justify-center rounded-full bg-card ring-1 ring-line disabled:opacity-30">
+              <Minus className="size-4" />
+            </button>
+            <button onClick={() => adjust(1)} disabled={busy} className="flex h-10 items-center gap-1 rounded-full bg-ink px-4 text-sm font-bold text-bg disabled:opacity-40">
+              +1 session
+            </button>
+          </div>
+        </div>
+      )}
+      {err && <p className="mt-2 text-sm text-danger">{err}</p>}
     </div>
   );
 }

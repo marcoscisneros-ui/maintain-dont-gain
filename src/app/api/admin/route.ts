@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   const { data: me } = await sb.from("profiles").select("is_admin").eq("id", auth.user.id).maybeSingle();
   if (!me?.is_admin) return fail("Admins only", 403);
 
-  let body: { action?: string; userId?: string; pin?: string; value?: boolean };
+  let body: { action?: string; userId?: string; pin?: string; value?: boolean; tier?: string; status?: string; delta?: number };
   try {
     body = await req.json();
   } catch {
@@ -52,6 +52,21 @@ export async function POST(req: Request) {
       }
       const { error } = await sb.auth.admin.deleteUser(userId);
       return error ? fail(error.message, 500) : Response.json({ ok: true });
+    }
+    case "set_tier": {
+      const tier = body.tier ?? "";
+      const status = body.status ?? "confirmed";
+      if (!["free", "gold", "diamond"].includes(tier) || !["pending", "confirmed"].includes(status)) return fail("Unknown tier");
+      const { error } = await sb.from("profiles").update({ tier, tier_status: tier === "free" ? "confirmed" : status }).eq("id", userId);
+      return error ? fail(error.message, 500) : Response.json({ ok: true });
+    }
+    case "adjust_sessions": {
+      const delta = Math.sign(Number(body.delta) || 0);
+      const { data: p, error: e1 } = await sb.from("profiles").select("sessions_used").eq("id", userId).single();
+      if (e1 || !p) return fail("Member not found", 404);
+      const next = Math.max(0, p.sessions_used + delta);
+      const { error } = await sb.from("profiles").update({ sessions_used: next }).eq("id", userId);
+      return error ? fail(error.message, 500) : Response.json({ ok: true, sessions_used: next });
     }
     default:
       return fail("Unknown action");

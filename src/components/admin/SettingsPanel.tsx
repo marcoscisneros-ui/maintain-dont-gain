@@ -8,7 +8,7 @@ import { loadSettings, type Settings } from "@/lib/settings";
 
 const KEYS = [
   "coach_name", "coach_title", "coach_photo_url", "groupme_url", "class_url_ios", "class_url_android", "class_url", "join_code",
-  "points_home", "points_gym", "points_class", "daily_point_cap", "start_date", "end_date",
+  "points_home", "points_gym", "points_class", "points_pt", "class_names", "daily_point_cap", "start_date", "end_date",
 ] as const;
 type Key = (typeof KEYS)[number];
 
@@ -85,7 +85,7 @@ export function SettingsPanel() {
 
       <Card className="space-y-4">
         <h3 className="font-semibold">Points</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Field label="🏠 Home">
             <Input {...bind("points_home")} type="number" inputMode="numeric" suffix="pts" />
           </Field>
@@ -95,6 +95,9 @@ export function SettingsPanel() {
           <Field label="🔥 Class">
             <Input {...bind("points_class")} type="number" inputMode="numeric" suffix="pts" />
           </Field>
+          <Field label="🤝 Personal training">
+            <Input {...bind("points_pt")} type="number" inputMode="numeric" suffix="pts" />
+          </Field>
         </div>
         <Field label="Max points per day" hint="Stops anyone from logging 10 workouts in one day. 0 = no limit.">
           <Input {...bind("daily_point_cap")} type="number" inputMode="numeric" suffix="pts" />
@@ -103,6 +106,9 @@ export function SettingsPanel() {
 
       <Card className="space-y-4">
         <h3 className="font-semibold">Challenge</h3>
+        <Field label="Class list" hint="The classes members pick from when they log a class. Separate with commas. They can also type one that isn't listed.">
+          <Input {...bind("class_names")} className="text-base" />
+        </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Start date">
             <Input {...bind("start_date")} type="date" className="text-base" />

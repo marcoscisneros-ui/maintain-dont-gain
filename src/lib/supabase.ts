@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Tier, TierStatus } from "./tiers";
 
 let client: SupabaseClient | null = null;
 
@@ -33,6 +34,9 @@ export type Profile = {
   step_goal: number;
   onboarded: boolean;
   is_admin: boolean;
+  tier: Tier;
+  tier_status: TierStatus;
+  sessions_used: number;
   created_at: string;
   last_seen_at: string;
 };
