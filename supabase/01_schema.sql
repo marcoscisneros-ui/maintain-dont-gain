@@ -12,6 +12,7 @@ create table public.profiles (
   last_name       text not null,
   avatar_url      text,
   start_weight    numeric(5,1),                  -- lbs
+  height_in       numeric(4,1),                  -- inches
   calorie_target  int  not null default 2000,
   step_goal       int  not null default 8000,
   onboarded       boolean not null default false,
@@ -61,7 +62,8 @@ create table public.inbody_scans (
   weight       numeric(5,1) not null,            -- lbs
   body_fat_pct numeric(4,1),
   smm          numeric(5,1),                     -- skeletal muscle mass, lbs
-  waist_in     numeric(4,1),                     -- inches
+  waist_in     numeric(4,1),                     -- inches (no longer shown)
+  visceral_fat numeric(4,1),                     -- InBody visceral fat level
   photo_path   text,                             -- in private bucket
   created_at   timestamptz not null default now()
 );
@@ -152,7 +154,7 @@ create policy "profiles: update own" on public.profiles
   for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 -- Members may only change these columns (not username / is_admin).
 revoke insert, update, delete on public.profiles from anon, authenticated;
-grant update (first_name, last_name, avatar_url, start_weight, calorie_target,
+grant update (first_name, last_name, avatar_url, start_weight, height_in, calorie_target,
               step_goal, onboarded, last_seen_at)
   on public.profiles to authenticated;
 

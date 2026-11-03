@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Button, ErrorText, Field, Input, cn } from "@/components/ui";
+import { HeightInput, isValidHeight } from "@/components/HeightInput";
 import { supabase } from "@/lib/supabase";
 import { todayISO } from "@/lib/dates";
 
@@ -21,7 +22,8 @@ export default function SetupPage() {
   const [steps, setSteps] = useState(profile?.step_goal?.toString() ?? "8000");
   const [bf, setBf] = useState("");
   const [smm, setSmm] = useState("");
-  const [waist, setWaist] = useState("");
+  const [visceral, setVisceral] = useState("");
+  const [height, setHeight] = useState(profile?.height_in?.toString() ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -30,6 +32,7 @@ export default function SetupPage() {
 
   async function next() {
     setError("");
+    if (STEPS[step] === "weight" && !isValidHeight(height)) return setError("Enter your height in feet and inches.");
     if (STEPS[step] === "weight" && !(w > 60 && w < 700)) return setError("Enter your current weight in pounds.");
     if (STEPS[step] === "targets" && !(Number(calories) >= 1000 && Number(calories) <= 6000))
       return setError("Pick a daily calorie target between 1,000 and 6,000.");
@@ -45,6 +48,7 @@ export default function SetupPage() {
       .update({
         avatar_url: avatar,
         start_weight: w,
+        height_in: Number(height),
         calorie_target: Number(calories),
         step_goal: Number(steps) || 8000,
         onboarded: true,
@@ -60,7 +64,7 @@ export default function SetupPage() {
       weight: w,
       body_fat_pct: bf ? Number(bf) : null,
       smm: smm ? Number(smm) : null,
-      waist_in: waist ? Number(waist) : null,
+      visceral_fat: visceral ? Number(visceral) : null,
     });
     await refreshProfile();
     router.replace("/home");
@@ -110,9 +114,12 @@ export default function SetupPage() {
           <>
             <h1 className="text-3xl font-bold tracking-tight">Where are you starting?</h1>
             <p className="mt-2 text-lg text-muted">
-              The goal is simple: be at (or under) this number on January 3rd. Only you and staff can see it.
+              The goal is simple: be at (or under) this weight on January 3rd. Only you and staff can see it.
             </p>
-            <div className="mt-8">
+            <div className="mt-8 space-y-5">
+              <Field label="Height">
+                <HeightInput value={height} onChange={setHeight} />
+              </Field>
               <Field label="Starting weight">
                 <Input
                   type="number"
@@ -121,7 +128,6 @@ export default function SetupPage() {
                   onChange={(e) => setWeight(e.target.value)}
                   suffix="lbs"
                   placeholder="185"
-                  autoFocus
                 />
               </Field>
             </div>
@@ -172,7 +178,7 @@ export default function SetupPage() {
           <>
             <h1 className="text-3xl font-bold tracking-tight">Got InBody numbers?</h1>
             <p className="mt-2 text-lg text-muted">
-              If you&apos;ve done a scan, add it here as your starting point. Totally optional. You can add scans later.
+              If you&apos;ve done an InBody scan, add any of these as your starting point. Totally optional. You can add them later from Progress.
             </p>
             <div className="mt-8 grid grid-cols-2 gap-4">
               <Field label="Body fat">
@@ -181,8 +187,8 @@ export default function SetupPage() {
               <Field label="Muscle mass (SMM)">
                 <Input type="number" inputMode="decimal" value={smm} onChange={(e) => setSmm(e.target.value)} suffix="lbs" />
               </Field>
-              <Field label="Waist">
-                <Input type="number" inputMode="decimal" value={waist} onChange={(e) => setWaist(e.target.value)} suffix="in" />
+              <Field label="Visceral fat level">
+                <Input type="number" inputMode="decimal" value={visceral} onChange={(e) => setVisceral(e.target.value)} placeholder="e.g. 8" />
               </Field>
             </div>
           </>

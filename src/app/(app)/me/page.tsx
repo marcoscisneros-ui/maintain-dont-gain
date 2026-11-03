@@ -8,11 +8,13 @@ import { useAuth } from "@/components/AuthProvider";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Button, Card, ErrorText, Field, Input, PageHeader } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
+import { HeightInput, isValidHeight } from "@/components/HeightInput";
 
 export default function MePage() {
   const router = useRouter();
   const { profile, refreshProfile, signOut } = useAuth();
   const [weight, setWeight] = useState(profile?.start_weight?.toString() ?? "");
+  const [height, setHeight] = useState(profile?.height_in?.toString() ?? "");
   const [calories, setCalories] = useState(profile?.calorie_target?.toString() ?? "");
   const [steps, setSteps] = useState(profile?.step_goal?.toString() ?? "");
   const [busy, setBusy] = useState(false);
@@ -33,11 +35,13 @@ export default function MePage() {
     setMsg("");
     const c = Number(calories);
     if (!(c >= 1000 && c <= 6000)) return setError("Calorie target should be between 1,000 and 6,000.");
+    if (height && !isValidHeight(height)) return setError("Check your height (feet and inches).");
     setBusy(true);
     const { error } = await supabase()
       .from("profiles")
       .update({
         start_weight: weight ? Number(weight) : null,
+        height_in: height ? Number(height) : null,
         calorie_target: c,
         step_goal: Number(steps) || 8000,
       })
@@ -79,6 +83,9 @@ export default function MePage() {
       <form onSubmit={save} className="mt-4">
         <Card className="rise space-y-5" style={{ animationDelay: "60ms" }}>
           <h2 className="font-semibold">My numbers</h2>
+          <Field label="Height">
+            <HeightInput value={height} onChange={setHeight} />
+          </Field>
           <Field label="Starting weight" hint="Only you and staff can see this.">
             <Input type="number" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} suffix="lbs" />
           </Field>

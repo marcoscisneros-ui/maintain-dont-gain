@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { Sheet } from "@/components/Sheet";
 import { Button, Card, Chip, Empty, ErrorText, Input, cn } from "@/components/ui";
 import { PinInput } from "@/components/PinInput";
+import { formatHeight } from "@/components/HeightInput";
 import { useSettings } from "@/lib/settings";
 import { formatDate, todayISO } from "@/lib/dates";
 import { timeAgo } from "@/lib/content";
@@ -228,6 +229,7 @@ function MemberSheet({ m, onClose, onChanged }: { m: MemberStats; onClose: () =>
           <p className="text-lg font-bold">{name}</p>
           <p className="text-sm text-muted">
             {p.username} · joined {formatDate(p.created_at.slice(0, 10))}
+            {p.height_in ? ` · ${formatHeight(p.height_in)}` : ""}
           </p>
           <p className="text-sm text-muted">Last seen {timeAgo(p.last_seen_at)}</p>
         </div>
@@ -247,7 +249,7 @@ function MemberSheet({ m, onClose, onChanged }: { m: MemberStats; onClose: () =>
         ))}
       </div>
 
-      <h3 className="mt-6 mb-2 font-semibold">InBody / weigh-ins</h3>
+      <h3 className="mt-6 mb-2 font-semibold">Weigh-ins & InBody</h3>
       {m.scans.length === 0 ? (
         <Empty>No scans yet.</Empty>
       ) : (
@@ -256,7 +258,7 @@ function MemberSheet({ m, onClose, onChanged }: { m: MemberStats; onClose: () =>
             <Change label="Weight" v={m.weightChange} unit="lb" goodDown />
             <Change label="Body fat" v={m.bodyFatChange} unit="%" goodDown />
             <Change label="SMM" v={m.smmChange} unit="lb" />
-            <Change label="Waist" v={m.waistChange} unit="in" goodDown />
+            <Change label="Visceral" v={m.visceralChange} unit="lvl" goodDown />
           </div>
           <ul className="divide-y divide-line rounded-2xl bg-card-2 px-4 text-sm">
             {[...m.scans].reverse().map((s) => (
@@ -266,7 +268,7 @@ function MemberSheet({ m, onClose, onChanged }: { m: MemberStats; onClose: () =>
                   <b>{Number(s.weight).toFixed(1)}</b> lbs
                   {s.body_fat_pct != null && ` · ${s.body_fat_pct}%`}
                   {s.smm != null && ` · ${s.smm} SMM`}
-                  {s.waist_in != null && ` · ${s.waist_in}"`}
+                  {s.visceral_fat != null && ` · V${s.visceral_fat}`}
                 </span>
               </li>
             ))}

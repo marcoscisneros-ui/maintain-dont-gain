@@ -25,6 +25,9 @@ Same as above, but with `supabase/02_content.sql`: **New query** → paste all o
 This adds the 49 daily messages, 49 tips, starter recipes, and a welcome announcement.
 (Run it only once, or you'll get duplicates.)
 
+### 2c. Height + visceral fat update
+Run `supabase/03_height_visceral.sql` the same way. It's safe to run more than once.
+
 ### 3. Lock down sign-ups (important)
 **Authentication → Sign In / Providers → Email** (or **Authentication → Settings**):
 - Turn **OFF** "Allow new users to sign up". (The app creates accounts itself. This stops anyone from going around it.)

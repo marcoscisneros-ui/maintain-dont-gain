@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, FileImage, Lock, Plus, Trash2, X } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/Toast";
-import { Button, Card, Empty, ErrorText, Field, Input, PageHeader, SectionTitle, Spinner, cn } from "@/components/ui";
+import { Button, Card, Empty, ErrorText, Field, Input, PageHeader, SectionTitle, Spinner, Toggle, cn } from "@/components/ui";
+import { HeightInput, formatHeight, isValidHeight } from "@/components/HeightInput";
 import { supabase } from "@/lib/supabase";
 import { formatDate, todayISO } from "@/lib/dates";
 import { removePrivate, signedUrls, uploadPrivate } from "@/lib/privatePhotos";
@@ -15,13 +16,13 @@ type Scan = {
   weight: number;
   body_fat_pct: number | null;
   smm: number | null;
-  waist_in: number | null;
+  visceral_fat: number | null;
   photo_path: string | null;
 };
 type Photo = { id: number; date: string; path: string; note: string | null };
 
 export default function ProgressPage() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const toast = useToast();
   const [scans, setScans] = useState<Scan[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -77,7 +78,7 @@ export default function ProgressPage() {
   }
 
   async function deleteScan(s: Scan) {
-    if (!confirm(`Delete the ${formatDate(s.date)} scan?`)) return;
+    if (!confirm(`Delete the ${formatDate(s.date)} weigh-in?`)) return;
     await supabase().from("inbody_scans").delete().eq("id", s.id);
     if (s.photo_path) await removePrivate(s.photo_path);
     load();
@@ -90,29 +91,31 @@ export default function ProgressPage() {
 
       {/* Change from start */}
       <Card className="rise">
-        <SectionTitle>Since your first scan</SectionTitle>
+        <SectionTitle right={profile.height_in ? <span className="text-sm text-muted">Height {formatHeight(profile.height_in)}</span> : undefined}>Since your first weigh-in</SectionTitle>
         {!first ? (
-          <Empty>Add your first weigh-in or InBody scan below.</Empty>
+          <Empty>Add your first weigh-in below.</Empty>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2">
               <Delta label="Weight" unit="lbs" from={first.weight} to={latest.weight} goodWhen="down-or-flat" />
-              <Delta label="Body fat" unit="%" from={first.body_fat_pct} to={latestOf(scans, "body_fat_pct")} goodWhen="down-or-flat" />
-              <Delta label="Muscle (SMM)" unit="lbs" from={first.smm} to={latestOf(scans, "smm")} goodWhen="up-or-flat" />
-              <Delta label="Waist" unit="in" from={first.waist_in} to={latestOf(scans, "waist_in")} goodWhen="down-or-flat" />
+              <Delta label="Body fat" unit="%" from={firstOf(scans, "body_fat_pct")} to={latestOf(scans, "body_fat_pct")} goodWhen="down-or-flat" />
+              <Delta label="Muscle (SMM)" unit="lbs" from={firstOf(scans, "smm")} to={latestOf(scans, "smm")} goodWhen="up-or-flat" />
+              <Delta label="Visceral fat" unit="lvl" from={firstOf(scans, "visceral_fat")} to={latestOf(scans, "visceral_fat")} goodWhen="down-or-flat" />
             </div>
             {scans.length > 1 && <WeightChart scans={scans} />}
           </>
         )}
         <Button className="mt-4 w-full" variant={adding ? "secondary" : "primary"} onClick={() => setAdding(!adding)}>
-          {adding ? "Cancel" : (<><Plus className="size-5" /> Add weigh-in / InBody scan</>)}
+          {adding ? "Cancel" : (<><Plus className="size-5" /> Add a weigh-in</>)}
         </Button>
         {adding && (
           <ScanForm
             userId={profile.id}
+            needsHeight={profile.height_in == null}
             onSaved={() => {
               setAdding(false);
-              toast.show("Scan saved ✓");
+              toast.show("Weigh-in saved ✓");
+              refreshProfile();
               load();
             }}
           />
@@ -122,7 +125,7 @@ export default function ProgressPage() {
       {/* Scan history */}
       {scans.length > 0 && (
         <Card className="rise" style={{ animationDelay: "40ms" }}>
-          <SectionTitle>Scan history</SectionTitle>
+          <SectionTitle>Weigh-in history</SectionTitle>
           <ul className="divide-y divide-line">
             {[...scans].reverse().map((s) => (
               <li key={s.id} className="flex items-center gap-3 py-3">
@@ -135,7 +138,7 @@ export default function ProgressPage() {
                     {formatDate(s.date, { month: "short", day: "numeric", year: "numeric" })}
                     {s.body_fat_pct != null && ` · ${s.body_fat_pct}% BF`}
                     {s.smm != null && ` · ${s.smm} SMM`}
-                    {s.waist_in != null && ` · ${s.waist_in}" waist`}
+                    {s.visceral_fat != null && ` · visceral ${s.visceral_fat}`}
                   </p>
                 </div>
                 {s.photo_path && urls[s.photo_path] && (
@@ -227,9 +230,14 @@ export default function ProgressPage() {
   );
 }
 
-function latestOf(scans: Scan[], k: "body_fat_pct" | "smm" | "waist_in"): number | null {
-  for (let i = scans.length - 1; i >= 0; i--) if (scans[i][k] != null) return scans[i][k];
-  return null;
+type Metric = "body_fat_pct" | "smm" | "visceral_fat";
+function firstOf(scans: Scan[], k: Metric): number | null {
+  return scans.find((s) => s[k] != null)?.[k] ?? null;
+}
+/** Latest reading — only counts if it's a later scan than the first one with that metric. */
+function latestOf(scans: Scan[], k: Metric): number | null {
+  const withK = scans.filter((s) => s[k] != null);
+  return withK.length > 1 ? withK[withK.length - 1][k] : null;
 }
 
 function Delta({
@@ -245,11 +253,22 @@ function Delta({
   to: number | null;
   goodWhen: "down-or-flat" | "up-or-flat";
 }) {
-  if (from == null || to == null)
+  if (from == null)
     return (
       <div className="rounded-2xl bg-card-2 p-3">
         <p className="text-xs text-muted">{label}</p>
         <p className="mt-1 text-lg font-bold text-muted">–</p>
+      </div>
+    );
+  if (to == null)
+    // only one reading so far: show it as the starting point
+    return (
+      <div className="rounded-2xl bg-card-2 p-3">
+        <p className="text-xs text-muted">{label}</p>
+        <p className="mt-1 text-lg font-bold">
+          {Number(from).toFixed(1)} {unit}
+        </p>
+        <p className="text-[11px] text-muted">starting point</p>
       </div>
     );
   const d = Math.round((Number(to) - Number(from)) * 10) / 10;
@@ -293,12 +312,14 @@ function WeightChart({ scans }: { scans: Scan[] }) {
   );
 }
 
-function ScanForm({ userId, onSaved }: { userId: string; onSaved: () => void }) {
+function ScanForm({ userId, needsHeight, onSaved }: { userId: string; needsHeight: boolean; onSaved: () => void }) {
   const [date, setDate] = useState(todayISO());
+  const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
+  const [showInBody, setShowInBody] = useState(false);
   const [bf, setBf] = useState("");
   const [smm, setSmm] = useState("");
-  const [waist, setWaist] = useState("");
+  const [visceral, setVisceral] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -306,19 +327,24 @@ function ScanForm({ userId, onSaved }: { userId: string; onSaved: () => void }) 
 
   async function save() {
     setError("");
+    if (needsHeight && !isValidHeight(height)) return setError("Enter your height in feet and inches.");
     const w = Number(weight);
     if (!(w > 60 && w < 700)) return setError("Enter your weight in pounds.");
     setBusy(true);
     try {
-      const photo_path = file ? await uploadPrivate(userId, file, "inbody") : null;
+      if (needsHeight) {
+        const { error } = await supabase().from("profiles").update({ height_in: Number(height) }).eq("id", userId);
+        if (error) throw error;
+      }
+      const photo_path = showInBody && file ? await uploadPrivate(userId, file, "inbody") : null;
       const { error } = await supabase()
         .from("inbody_scans")
         .insert({
           date,
           weight: w,
-          body_fat_pct: bf ? Number(bf) : null,
-          smm: smm ? Number(smm) : null,
-          waist_in: waist ? Number(waist) : null,
+          body_fat_pct: showInBody && bf ? Number(bf) : null,
+          smm: showInBody && smm ? Number(smm) : null,
+          visceral_fat: showInBody && visceral ? Number(visceral) : null,
           photo_path,
         });
       if (error) throw error;
@@ -332,35 +358,52 @@ function ScanForm({ userId, onSaved }: { userId: string; onSaved: () => void }) 
 
   return (
     <div className="fade mt-4 space-y-4 border-t border-line pt-4">
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Date">
-          <Input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} className="text-base" />
+      {needsHeight && (
+        <Field label="Your height (we only ask once)">
+          <HeightInput value={height} onChange={setHeight} />
         </Field>
+      )}
+      <div className="grid grid-cols-2 gap-3">
         <Field label="Weight">
           <Input type="number" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} suffix="lbs" autoFocus />
         </Field>
-        <Field label="Body fat">
-          <Input type="number" inputMode="decimal" value={bf} onChange={(e) => setBf(e.target.value)} suffix="%" />
-        </Field>
-        <Field label="Muscle (SMM)">
-          <Input type="number" inputMode="decimal" value={smm} onChange={(e) => setSmm(e.target.value)} suffix="lbs" />
-        </Field>
-        <Field label="Waist">
-          <Input type="number" inputMode="decimal" value={waist} onChange={(e) => setWaist(e.target.value)} suffix="in" />
+        <Field label="Date">
+          <Input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} className="text-base" />
         </Field>
       </div>
-      <input ref={fileInput} type="file" accept="image/*" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-      <button
-        type="button"
-        onClick={() => fileInput.current?.click()}
-        className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-line px-4 py-3 text-left text-sm text-muted"
-      >
-        <FileImage className="size-5" />
-        {file ? <span className="truncate text-ink">{file.name}</span> : "Photo of InBody printout (optional)"}
-      </button>
+
+      <div className="rounded-2xl bg-card-2 p-4">
+        <Toggle checked={showInBody} onChange={setShowInBody} label="Add InBody results (optional)" />
+        {showInBody && (
+          <div className="fade mt-4 space-y-4">
+            <p className="text-xs text-muted">Fill in any of these from your InBody printout, or just snap a photo of it.</p>
+            <div className="grid grid-cols-3 gap-2">
+              <Field label="Body fat">
+                <Input type="number" inputMode="decimal" value={bf} onChange={(e) => setBf(e.target.value)} suffix="%" className="px-3 pr-9 text-base" />
+              </Field>
+              <Field label="SMM">
+                <Input type="number" inputMode="decimal" value={smm} onChange={(e) => setSmm(e.target.value)} suffix="lbs" className="px-3 pr-10 text-base" />
+              </Field>
+              <Field label="Visceral fat">
+                <Input type="number" inputMode="decimal" value={visceral} onChange={(e) => setVisceral(e.target.value)} placeholder="lvl" className="px-3 text-base" />
+              </Field>
+            </div>
+            <input ref={fileInput} type="file" accept="image/*" hidden onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-line bg-card px-4 py-3 text-left text-sm text-muted"
+            >
+              <FileImage className="size-5" />
+              {file ? <span className="truncate text-ink">{file.name}</span> : "Photo of your InBody printout (optional)"}
+            </button>
+          </div>
+        )}
+      </div>
+
       <ErrorText>{error}</ErrorText>
       <Button className="w-full" onClick={save} loading={busy}>
-        {busy ? <Spinner /> : "Save scan"}
+        {busy ? <Spinner /> : "Save weigh-in"}
       </Button>
     </div>
   );

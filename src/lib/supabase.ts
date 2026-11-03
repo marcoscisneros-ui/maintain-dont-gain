@@ -28,6 +28,7 @@ export type Profile = {
   last_name: string;
   avatar_url: string | null;
   start_weight: number | null;
+  height_in: number | null;
   calorie_target: number;
   step_goal: number;
   onboarded: boolean;
