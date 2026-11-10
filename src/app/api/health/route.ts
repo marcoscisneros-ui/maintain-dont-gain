@@ -37,6 +37,8 @@ export async function GET() {
       report.rewards_update = r.error ? "MISSING ✗ (run 06_rewards.sql)" : "installed ✓";
       const w = await sb.from("prizes").select("slots", { head: true }).limit(1);
       report.prize_list_update = w.error ? "MISSING ✗ (run 07_wheel_prizes.sql)" : "installed ✓";
+      const ph = await sb.from("profiles").select("phone", { head: true }).limit(1);
+      report.phone_update = ph.error ? "MISSING ✗ (run 08_phone_and_spin5.sql)" : "installed ✓";
     } catch (e) {
       report.database = `ERROR: ${(e as Error).message}`;
     }

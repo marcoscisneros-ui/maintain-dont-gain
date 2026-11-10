@@ -39,7 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   points_gym: "2",
   points_class: "3",
   points_pt: "5",
-  spin_min_days: "4",
+  spin_min_days: "5",
   class_names: "Cycle, HIIT, Strength, Bootcamp, Yoga, Pilates, Boxing, Dance, Core, Stretch",
   daily_point_cap: "5",
 };

@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     (workouts.data ?? []).map((w) => w.date),
     s.start_date,
     s.end_date,
-    Number(s.spin_min_days) || 4,
+    Number(s.spin_min_days) || 5,
   );
   const weeks = unspentWeeks(progress, spins.data ?? []);
   if (!weeks.length) return fail("No spins available yet. Keep logging workouts!");

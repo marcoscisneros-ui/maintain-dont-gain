@@ -6,6 +6,7 @@ import { pointsForDay } from "./points";
 import { compressImage } from "./image";
 import type { Settings } from "./settings";
 import { TIERS } from "./tiers";
+import { formatPhone } from "./phone";
 
 /** Supabase returns at most 1,000 rows per request, so page through everything. */
 export async function fetchAll<T>(table: string, select: string, orderBy: string): Promise<T[]> {
@@ -135,10 +136,10 @@ export function downloadCSV(filename: string, csv: string) {
 
 export function summaryCSV(stats: MemberStats[]): string {
   return toCSV(
-    ["First name", "Last name", "Username", "Tier", "Tier status", "PT sessions used", "PT sessions total", "Admin", "Joined", "Last seen", "Height (in)", "Points", "Workouts", "Days logged", "Current streak",
+    ["First name", "Last name", "Username", "Phone", "Tier", "Tier status", "PT sessions used", "PT sessions total", "Admin", "Joined", "Last seen", "Height (in)", "Points", "Workouts", "Days logged", "Current streak",
      "Start weight (lbs)", "Latest weight (lbs)", "Weight change (lbs)", "Body fat change (%)", "SMM change (lbs)", "Visceral fat change", "Calorie target", "Step goal"],
     stats.map((s) => [
-      s.profile.first_name, s.profile.last_name, s.profile.username,
+      s.profile.first_name, s.profile.last_name, s.profile.username, s.profile.phone ? formatPhone(s.profile.phone) : "",
       TIERS[s.profile.tier ?? "free"].label, s.profile.tier_status ?? "confirmed", s.profile.sessions_used ?? 0, TIERS[s.profile.tier ?? "free"].sessions,
       s.profile.is_admin ? "yes" : "",
       s.profile.created_at.slice(0, 10), s.profile.last_seen_at.slice(0, 16).replace("T", " "), s.profile.height_in,

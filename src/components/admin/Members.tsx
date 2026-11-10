@@ -8,6 +8,7 @@ import { Sheet } from "@/components/Sheet";
 import { Button, Card, Chip, Empty, ErrorText, Input, cn } from "@/components/ui";
 import { PinInput } from "@/components/PinInput";
 import { formatHeight } from "@/components/HeightInput";
+import { formatPhone } from "@/lib/phone";
 import { TierBadge } from "@/components/TierBadge";
 import { TIERS, TIER_ORDER, type Tier } from "@/lib/tiers";
 import { Minus } from "lucide-react";
@@ -272,8 +273,28 @@ function MemberSheet({ m, onClose, onChanged, onDirty }: { m: MemberStats; onClo
             {p.height_in ? ` · ${formatHeight(p.height_in)}` : ""}
           </p>
           <p className="text-sm text-muted">Last seen {timeAgo(p.last_seen_at)}</p>
+          {p.phone ? (
+            <p className="mt-1 flex items-center gap-3 text-sm font-semibold">
+              <a href={`tel:${p.phone}`} className="text-brand">📞 {formatPhone(p.phone)}</a>
+              <a href={`sms:${p.phone}`} className="text-muted underline">Text</a>
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-muted">No phone number yet</p>
+          )}
         </div>
       </div>
+
+      {p.id !== me?.id && (
+        <button
+          onClick={() => {
+            if (!confirm(`Remove ${name} and ALL of their logs and photos? This can't be undone.`)) return;
+            run("delete", () => adminAction("delete_member", p.id).then(() => {}), "Member removed.", true);
+          }}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger"
+        >
+          <Trash2 className="size-3.5" /> Remove member
+        </button>
+      )}
 
       <div className="mt-5 grid grid-cols-4 gap-2 text-center">
         {[

@@ -29,7 +29,7 @@ export function useRewards(profile: Profile | null, settings: Settings | null) {
     ]);
     if (s.error || p.error) return; // rewards update not installed yet: hide quietly
     const dates = (w.data ?? []).map((x) => x.date as string);
-    const minDays = Number(settings.spin_min_days) || 4;
+    const minDays = Number(settings.spin_min_days) || 5;
     const weeks = weeklyProgress(dates, settings.start_date, settings.end_date, minDays);
     const start = weekStart(todayISO());
     setState({

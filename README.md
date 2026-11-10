@@ -40,6 +40,9 @@ Run `supabase/06_rewards.sql` the same way (safe to run more than once). Adds th
 ### 2g. Prize list update
 Run `supabase/07_wheel_prizes.sql` the same way (safe to run more than once). Loads the real prize list and lets a prize appear several times on the wheel.
 
+### 2h. Phone numbers + 5-day spin update
+Run `supabase/08_phone_and_spin5.sql` the same way (safe to run more than once). Adds members' phone numbers and sets the prize wheel to 5 workout days per week.
+
 ### 3. Lock down sign-ups (important)
 **Authentication → Sign In / Providers → Email** (or **Authentication → Settings**):
 - Turn **OFF** "Allow new users to sign up". (The app creates accounts itself. This stops anyone from going around it.)
@@ -70,7 +73,7 @@ Log in as usual. Admins see an **Admin** button at the top of Home (and on the p
 - **Members:** engagement (days logged, streak, last seen), points, InBody changes, progress photos. Levels: Free / 🥇 Gold (4 PT sessions) / 💎 Diamond (8). Gold and Diamond show as pending until you tap **Confirm** after they pay; use **+1 session** after each personal training session. Tap a member to reset their PIN, make them staff/admin, or remove them. Download **Summary CSV** or **All logs CSV**.
 - **Posts:** announcements (can be pinned) and pop-up events with a date and time.
 - **Daily:** your daily messages and tips, one per day in list order. Edit, add, or reorder them with the arrows. Each message shows 👀 how many members saw it and ❤️ how many hearted it. Tap one to see who.
-- **Rewards:** members who work out 4 different days in a week (Mon–Sun) earn a spin. Look up a certificate code (e.g. MDG-7K3Q) and tap **Mark redeemed** when they claim it. Add/edit prizes and their odds here.
+- **Rewards:** members who work out 5 different days in a week (Mon–Sun) earn a spin. Look up a certificate code (e.g. MDG-7K3Q) and tap **Mark redeemed** when they claim it. Add/edit prizes and their odds here.
 - **Classes:** which classes members take, average star ratings, and their comments (plus personal training).
 - **Recipes:** add, edit, or delete recipes and tips, with photos.
 - **Settings:** your headshot and title, GroupMe, Facebook group and class links, point values, daily point cap, dates, and an optional join code.

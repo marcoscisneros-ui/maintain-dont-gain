@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { isValidPin, namePart, pinToPassword, usernameToEmail } from "@/lib/username";
+import { isValidPhone, phoneDigits } from "@/lib/phone";
 
 // Creates a member account with a "first.lastname" username and a PIN.
 // Runs on the server with the secret key so no confirmation email is needed.
@@ -27,7 +28,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  let body: { firstName?: string; lastName?: string; pin?: string; code?: string; tier?: string };
+  let body: { firstName?: string; lastName?: string; pin?: string; code?: string; tier?: string; phone?: string };
   try {
     body = await req.json();
   } catch {
@@ -43,6 +44,8 @@ export async function POST(req: Request) {
 
   if (!first || !last) return Response.json({ error: "Please enter your first and last name." }, { status: 400 });
   if (!isValidPin(pin)) return Response.json({ error: "Your PIN must be exactly 4 digits." }, { status: 400 });
+  if (!isValidPhone(body.phone ?? "")) return Response.json({ error: "Enter your 10-digit cell phone number." }, { status: 400 });
+  const phone = phoneDigits(body.phone ?? "");
 
   let sb: ReturnType<typeof admin>;
   try {
@@ -83,6 +86,7 @@ export async function POST(req: Request) {
     last_name: lastName,
     is_admin: (count ?? 0) === 0,
     tier,
+    phone,
     // Gold / Diamond are paid at the front desk, so staff confirm them in the admin area.
     tier_status: tier === "free" ? "confirmed" : "pending",
   });

@@ -10,6 +10,7 @@ import { Button, Card, ErrorText, Field, Input, PageHeader, Toggle } from "@/com
 import { playTada, setSoundEnabled, soundEnabled } from "@/lib/sound";
 import { supabase } from "@/lib/supabase";
 import { HeightInput, isValidHeight } from "@/components/HeightInput";
+import { formatPhone, isValidPhone, phoneDigits } from "@/lib/phone";
 import { TierBadge } from "@/components/TierBadge";
 import { TIERS, sessionsLeft } from "@/lib/tiers";
 
@@ -18,6 +19,7 @@ export default function MePage() {
   const { profile, refreshProfile, signOut } = useAuth();
   const [weight, setWeight] = useState(profile?.start_weight?.toString() ?? "");
   const [height, setHeight] = useState(profile?.height_in?.toString() ?? "");
+  const [phone, setPhone] = useState(formatPhone(profile?.phone));
   const [calories, setCalories] = useState(profile?.calorie_target?.toString() ?? "");
   const [steps, setSteps] = useState(profile?.step_goal?.toString() ?? "");
   const [busy, setBusy] = useState(false);
@@ -41,12 +43,14 @@ export default function MePage() {
     const c = Number(calories);
     if (!(c >= 1000 && c <= 6000)) return setError("Calorie target should be between 1,000 and 6,000.");
     if (height && !isValidHeight(height)) return setError("Check your height (feet and inches).");
+    if (phone && !isValidPhone(phone)) return setError("Check your phone number (10 digits).");
     setBusy(true);
     const { error } = await supabase()
       .from("profiles")
       .update({
         start_weight: weight ? Number(weight) : null,
         height_in: height ? Number(height) : null,
+        phone: phone ? phoneDigits(phone) : null,
         calorie_target: c,
         step_goal: Number(steps) || 8000,
       })
@@ -116,6 +120,9 @@ export default function MePage() {
       <form onSubmit={save} className="mt-4">
         <Card className="rise space-y-5" style={{ animationDelay: "60ms" }}>
           <h2 className="font-semibold">My numbers</h2>
+          <Field label="Cell phone" hint="Only staff can see this.">
+            <Input type="tel" inputMode="tel" autoComplete="tel-national" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} placeholder="(325) 555-0123" />
+          </Field>
           <Field label="Height">
             <HeightInput value={height} onChange={setHeight} />
           </Field>

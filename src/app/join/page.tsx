@@ -10,6 +10,7 @@ import { Button, ErrorText, Field, Input } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { isValidPin, namePart, pinToPassword, usernameToEmail } from "@/lib/username";
 import { TIERS, TIER_ORDER, type Tier } from "@/lib/tiers";
+import { formatPhone, isValidPhone, phoneDigits } from "@/lib/phone";
 import { cn } from "@/components/ui";
 
 export default function JoinPage() {
@@ -21,6 +22,7 @@ export default function JoinPage() {
   const [pin2, setPin2] = useState("");
   const [code, setCode] = useState("");
   const [tier, setTier] = useState<Tier>("free");
+  const [phone, setPhone] = useState("");
   const [codeRequired, setCodeRequired] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -43,13 +45,14 @@ export default function JoinPage() {
     e.preventDefault();
     setError("");
     if (!first.trim() || !last.trim()) return setError("Please enter your first and last name.");
+    if (!isValidPhone(phone)) return setError("Enter your 10-digit cell phone number.");
     if (!isValidPin(pin)) return setError("Pick a 4-digit PIN.");
     if (pin !== pin2) return setError("Those PINs don't match. Try again.");
     setBusy(true);
     const res = await fetch("/api/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstName: first, lastName: last, pin, code, tier }),
+      body: JSON.stringify({ firstName: first, lastName: last, phone: phoneDigits(phone), pin, code, tier }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -101,6 +104,16 @@ export default function JoinPage() {
         <p className="-mt-2 text-sm text-muted">
           Your username will be <span className="font-semibold text-ink">{preview}</span>
         </p>
+        <Field label="Cell phone" hint="Only staff can see this. We'll use it to reach you about prizes and events.">
+          <Input
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            value={phone}
+            onChange={(e) => setPhone(formatPhone(e.target.value))}
+            placeholder="(325) 555-0123"
+          />
+        </Field>
         <div>
           <span className="mb-1.5 block text-sm font-medium text-muted">Pick a 4-digit PIN</span>
           <PinInput value={pin} onChange={setPin} />

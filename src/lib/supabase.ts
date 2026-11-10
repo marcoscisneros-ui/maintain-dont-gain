@@ -30,6 +30,7 @@ export type Profile = {
   avatar_url: string | null;
   start_weight: number | null;
   height_in: number | null;
+  phone?: string | null;
   calorie_target: number;
   step_goal: number;
   onboarded: boolean;

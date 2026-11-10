@@ -179,6 +179,16 @@ export default function HomePage() {
         )}
       </section>
 
+      {!profile.phone && (
+        <Link href="/me" className="rise flex items-center gap-3 rounded-2xl bg-gold/12 px-4 py-3 text-sm ring-1 ring-gold/30">
+          <span className="text-xl">📱</span>
+          <span className="flex-1">
+            <b>Add your phone number</b> so staff can reach you about prizes and events.
+          </span>
+          <ChevronRight className="size-4 text-muted" />
+        </Link>
+      )}
+
       {/* Quick log */}
       <section className="rise grid grid-cols-4 gap-2" style={{ animationDelay: "60ms" }}>
         <Quick href="/food" label="Food" Icon={Utensils} color="var(--brand)" />
