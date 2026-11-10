@@ -14,6 +14,8 @@ import { useRewards } from "@/lib/useRewards";
 import { addDays, formatDate, todayISO } from "@/lib/dates";
 import { buildWheel, type Spin } from "@/lib/rewards";
 import { playTada } from "@/lib/sound";
+import { TrophySheet } from "@/components/TrophySheet";
+import { TROPHY_DATA_URL, weekLabel, type TrophyInfo } from "@/lib/trophy";
 import { useMemo } from "react";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -30,8 +32,34 @@ export default function RewardsPage() {
   const [error, setError] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const [winner, setWinner] = useState<number | null>(null);
+  const [trophy, setTrophy] = useState<TrophyInfo | null>(null);
   const [party, setParty] = useState(false);
   const slices = useMemo(() => buildWheel(state?.prizes ?? []), [state?.prizes]);
+  const trophies = useMemo(() => {
+    if (!state || !profile) return [];
+    const earned = state.weeks.filter((w) => w.earned);
+    return earned.map((w, i) => ({
+      name: `${profile.first_name} ${profile.last_name}`,
+      weekStart: w.weekStart,
+      trophyNo: i + 1,
+      weekNo: state.weeks.findIndex((x) => x.weekStart === w.weekStart) + 1,
+      totalWeeks: state.weeks.length,
+      days: state.minDays,
+    }));
+  }, [state, profile]);
+
+  // Opened from the "Get my trophy" button right after earning one
+  useEffect(() => {
+    if (!trophies.length) return;
+    try {
+      const wanted = sessionStorage.getItem("mdg-open-trophy");
+      if (!wanted) return;
+      sessionStorage.removeItem("mdg-open-trophy");
+      const t = trophies.find((x) => x.weekStart === wanted);
+      if (t) setTrophy(t);
+    } catch {}
+  }, [trophies]);
+
   const emojiFor = (sp: Spin) => state?.prizes.find((p) => p.id === sp.prize_id)?.emoji ?? "🎁";
 
   useEffect(() => {
@@ -142,6 +170,30 @@ export default function RewardsPage() {
             </p>
           </Card>
 
+          {/* Trophies */}
+          <section className="rise" style={{ animationDelay: "60ms" }}>
+            <SectionTitle>My trophies 🏆</SectionTitle>
+            {trophies.length === 0 ? (
+              <Empty>Work out {state.minDays} different days in a week to earn a trophy you can share.</Empty>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {trophies.map((t) => (
+                  <button
+                    key={t.weekStart}
+                    onClick={() => setTrophy(t)}
+                    className="flex flex-col items-center rounded-3xl bg-gradient-to-b from-[#f29445] to-[#c8283f] p-4 text-white shadow-card transition active:scale-[0.97]"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={TROPHY_DATA_URL} alt="" className="size-20 drop-shadow-lg" />
+                    <span className="mt-1 text-sm font-black">Trophy #{t.trophyNo}</span>
+                    <span className="text-xs text-white/85">{weekLabel(t.weekStart)}</span>
+                    <span className="mt-2 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold">Download / share</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+
           {/* Certificates */}
           <section className="rise" style={{ animationDelay: "80ms" }}>
             <SectionTitle>My certificates</SectionTitle>
@@ -177,6 +229,7 @@ export default function RewardsPage() {
       )}
 
       {party && <Confetti />}
+      {trophy && <TrophySheet info={trophy} facebookUrl={settings.facebook_url} onClose={() => setTrophy(null)} />}
       {won && (
         <Sheet title="🎉 Winner!" onClose={() => setWon(null)}>
           <div className="prize-pop mb-4 text-center">

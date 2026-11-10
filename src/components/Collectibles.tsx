@@ -1,11 +1,15 @@
 // Glossy "3D" collectibles drawn with gradients + highlights. Pure SVG, no downloads.
 
-export type CollectibleKind = "dumbbell" | "apple" | "medal" | "star";
+import { TROPHY_DATA_URL } from "@/lib/trophy";
+
+export type CollectibleKind = "dumbbell" | "apple" | "medal" | "star" | "trophy";
 
 export function Collectible({ kind, size = 150 }: { kind: CollectibleKind; size?: number }) {
   if (kind === "dumbbell") return <Dumbbell size={size} />;
   if (kind === "apple") return <Apple size={size} />;
   if (kind === "medal") return <Medal size={size} />;
+  // eslint-disable-next-line @next/next/no-img-element
+  if (kind === "trophy") return <img src={TROPHY_DATA_URL} width={size} height={size} alt="" />;
   return <Star size={size} />;
 }
 

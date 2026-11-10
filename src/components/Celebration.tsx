@@ -12,6 +12,7 @@ export type CelebrateOptions = {
   subtitle?: string; // e.g. "You've lifted your way to 12 workouts"
   points?: number; // shows "+3 pts"
   milestone?: boolean; // bigger fanfare
+  action?: { label: string; onClick: () => void }; // e.g. "Get my trophy"; keeps the pop-up open until tapped
 };
 
 const Ctx = createContext<(o: CelebrateOptions) => void>(() => {});
@@ -36,7 +37,7 @@ export function CelebrationProvider({ children }: { children: React.ReactNode })
     if (timer.current) clearTimeout(timer.current);
     setCurrent({ ...o, id: Date.now() });
     playTada(!!o.milestone);
-    timer.current = setTimeout(() => setCurrent(null), o.milestone ? 3400 : 2400);
+    if (!o.action) timer.current = setTimeout(() => setCurrent(null), o.milestone ? 3400 : 2400);
   }, []);
 
   const close = () => {
@@ -74,7 +75,24 @@ export function CelebrationProvider({ children }: { children: React.ReactNode })
             {!!current.points && current.points > 0 && (
               <p className="celebrate-pop mt-4 rounded-full bg-[#ffd23f] px-5 py-2 text-xl font-black text-[#4a2c00] shadow-lg">+{current.points} pts</p>
             )}
-            <p className="mt-8 text-xs text-white/60">Tap anywhere to continue</p>
+            {current.action ? (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const a = current.action!;
+                    close();
+                    a.onClick();
+                  }}
+                  className="celebrate-pop mt-6 min-h-12 rounded-2xl bg-white px-6 text-base font-black text-[#c8283f] shadow-xl active:scale-95"
+                >
+                  {current.action.label}
+                </button>
+                <p className="mt-4 text-xs text-white/60">or tap anywhere to close</p>
+              </>
+            ) : (
+              <p className="mt-8 text-xs text-white/60">Tap anywhere to continue</p>
+            )}
           </div>,
           document.body,
         )}

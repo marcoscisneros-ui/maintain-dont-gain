@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { weekStart as mondayOf } from "@/lib/rewards";
 import { CalendarPlus, Footprints, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { DatePager } from "@/components/DatePager";
@@ -24,6 +26,7 @@ export default function MovePage() {
   const settings = useSettings();
   const toast = useToast();
   const celebrate = useCelebrate();
+  const router = useRouter();
   const [date, setDate] = useState(todayISO());
   const [steps, setSteps] = useState("");
   const [savedSteps, setSavedSteps] = useState<number | null>(null);
@@ -107,7 +110,42 @@ export default function MovePage() {
     const after = pointsForDay([...dayWorkouts.map((w) => w.location), loc], date, settings!);
     const gained = after - dayPoints;
     const total = await countMine("workouts", profile!.id);
-    celebrate({
+
+    // 5th different workout day this week (Mon–Sun)? Trophy time!
+    const minDays = Number(settings!.spin_min_days) || 5;
+    const ws = mondayOf(date);
+    const inChallengeDay = date >= settings!.start_date && date <= settings!.end_date;
+    let trophyEarned = false;
+    if (inChallengeDay && dayWorkouts.length === 0) {
+      const { data: wk } = await supabase()
+        .from("workouts")
+        .select("date")
+        .eq("user_id", profile!.id)
+        .gte("date", ws)
+        .lte("date", addDays(ws, 6));
+      const days = new Set((wk ?? []).map((r) => r.date as string).filter((d) => d >= settings!.start_date && d <= settings!.end_date));
+      if (days.size === minDays) {
+        trophyEarned = true;
+        celebrate({
+          kind: "trophy",
+          title: `${minDays}-Workout Week! 🏆`,
+          subtitle: `You earned a trophy and a prize wheel spin, ${profile!.first_name}!`,
+          points: gained,
+          milestone: true,
+          action: {
+            label: "🏆 Get my trophy",
+            onClick: () => {
+              try {
+                sessionStorage.setItem("mdg-open-trophy", ws);
+              } catch {}
+              router.push("/rewards");
+            },
+          },
+        });
+      }
+    }
+
+    if (!trophyEarned) celebrate({
       kind: "dumbbell",
       title: `Dumbbell #${total} collected!`,
       subtitle: total === 1 ? "Your first workout is in the books 💪" : `${what} logged. Keep stacking them.`,
