@@ -66,8 +66,22 @@ function fitText(ctx: CanvasRenderingContext2D, text: string, weight: number, st
   return size;
 }
 
-/** Draws the shareable trophy (1080×1350, Facebook's portrait size) and returns a JPG. */
-export async function renderTrophyJPG(t: TrophyInfo): Promise<Blob> {
+export type AwardCard = { plaque: string; title: string; name: string; line1: string; line2: string; line3: string };
+
+/** Weekly trophy picture. */
+export function renderTrophyJPG(t: TrophyInfo): Promise<Blob> {
+  return renderAwardJPG({
+    plaque: `${t.days} DAYS`,
+    title: `${t.days}-WORKOUT WEEK!`,
+    name: t.name,
+    line1: `Week of ${weekLabel(t.weekStart)}`,
+    line2: `🏆 Trophy #${t.trophyNo}  ·  Week ${t.weekNo} of ${t.totalWeeks}`,
+    line3: "Holding the line through the holidays 💪",
+  });
+}
+
+/** Draws a shareable award picture (1080×1350, Facebook's portrait size) and returns a JPG. */
+export async function renderAwardJPG(t: AwardCard): Promise<Blob> {
   const W = 1080, H = 1350;
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -140,7 +154,7 @@ export async function renderTrophyJPG(t: TrophyInfo): Promise<Blob> {
   (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "0px";
 
   // trophy
-  const img = await loadImage(toDataUrl(trophySvg(`${t.days} DAYS`)));
+  const img = await loadImage(toDataUrl(trophySvg(t.plaque)));
   ctx.save();
   ctx.shadowColor = "rgba(0,0,0,0.35)";
   ctx.shadowBlur = 40;
@@ -154,7 +168,7 @@ export async function renderTrophyJPG(t: TrophyInfo): Promise<Blob> {
   ctx.shadowBlur = 16;
   ctx.shadowOffsetY = 6;
   ctx.fillStyle = "#fff";
-  const title = `${t.days}-WORKOUT WEEK!`;
+  const title = t.title;
   fitText(ctx, title, 900, 104, 940, family);
   ctx.fillText(title, W / 2, 870);
   ctx.restore();
@@ -181,13 +195,16 @@ export async function renderTrophyJPG(t: TrophyInfo): Promise<Blob> {
   // details
   ctx.fillStyle = "#fff";
   ctx.font = `700 46px ${family}`;
-  ctx.fillText(`Week of ${weekLabel(t.weekStart)}`, W / 2, 1150);
+  fitText(ctx, t.line1, 700, 46, 900, family);
+  ctx.fillText(t.line1, W / 2, 1150);
   ctx.fillStyle = "rgba(255,255,255,0.85)";
   ctx.font = `600 34px ${family}`;
-  ctx.fillText(`🏆 Trophy #${t.trophyNo}  ·  Week ${t.weekNo} of ${t.totalWeeks}`, W / 2, 1210);
+  fitText(ctx, t.line2, 600, 34, 900, family);
+  ctx.fillText(t.line2, W / 2, 1210);
   ctx.fillStyle = "rgba(255,255,255,0.7)";
   ctx.font = `600 30px ${family}`;
-  ctx.fillText("Holding the line through the holidays 💪", W / 2, 1268);
+  fitText(ctx, t.line3, 600, 30, 900, family);
+  ctx.fillText(t.line3, W / 2, 1268);
 
   return new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error("Couldn't make the image"))), "image/jpeg", 0.92));
 }

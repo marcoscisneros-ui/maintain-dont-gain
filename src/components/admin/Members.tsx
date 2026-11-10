@@ -11,6 +11,7 @@ import { formatHeight } from "@/components/HeightInput";
 import { formatPhone } from "@/lib/phone";
 import { TierBadge } from "@/components/TierBadge";
 import { TIERS, TIER_ORDER, type Tier } from "@/lib/tiers";
+import { weeklyProgress } from "@/lib/rewards";
 import { Minus } from "lucide-react";
 import { useSettings } from "@/lib/settings";
 import { formatDate, todayISO } from "@/lib/dates";
@@ -47,6 +48,7 @@ export function Members() {
   const [tierFilter, setTierFilter] = useState<"all" | "pending" | Tier>("all");
   const [open, setOpen] = useState<MemberStats | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [showResults, setShowResults] = useState(false);
 
   const load = useCallback(async () => {
     setError("");
@@ -123,6 +125,10 @@ export function Members() {
         )}
       </Card>
 
+      <Button variant="secondary" className="w-full" onClick={() => setShowResults(true)}>
+        🏁 Final results &amp; winners
+      </Button>
+
       <div className="grid grid-cols-2 gap-2">
         <Button variant="secondary" className="text-sm" onClick={() => downloadCSV(`mdg-participants-${today}.csv`, summaryCSV(shown))}>
           <Download className="size-4" /> Summary CSV
@@ -183,6 +189,7 @@ export function Members() {
         </Card>
       )}
 
+      {showResults && data && settings && <ResultsSheet stats={stats} data={data} minDays={Number(settings.spin_min_days) || 5} start={settings.start_date} end={settings.end_date} onClose={() => setShowResults(false)} />}
       {open && (
         <MemberSheet
           m={open}
@@ -501,5 +508,88 @@ function TierControls({ m, onChanged }: { m: MemberStats; onChanged: () => void 
       )}
       {err && <p className="mt-2 text-sm text-danger">{err}</p>}
     </div>
+  );
+}
+
+/** Who to recognize at the end: points, consistency, workouts, trophies, and everyone who held the line. */
+function ResultsSheet({
+  stats,
+  data,
+  minDays,
+  start,
+  end,
+  onClose,
+}: {
+  stats: MemberStats[];
+  data: AllData;
+  minDays: number;
+  start: string;
+  end: string;
+  onClose: () => void;
+}) {
+  const name = (m: MemberStats) => `${m.profile.first_name} ${m.profile.last_name}`;
+  const trophies = new Map<string, number>();
+  for (const m of stats) {
+    const days = data.workouts.filter((w) => w.user_id === m.profile.id && w.date >= start && w.date <= end).map((w) => w.date);
+    trophies.set(m.profile.id, weeklyProgress(days, start, end, minDays).filter((w) => w.earned).length);
+  }
+  const top = (sorter: (a: MemberStats, b: MemberStats) => number, n = 5) => [...stats].sort(sorter).slice(0, n);
+  const held = stats
+    .filter((m) => m.weightChange != null && m.weightChange <= 1)
+    .sort((a, b) => (a.weightChange ?? 0) - (b.weightChange ?? 0));
+  return (
+    <Sheet title="🏁 Final results" onClose={onClose}>
+      <p className="mb-4 text-sm text-muted">Live numbers. Check again on the last day to pick your winners.</p>
+      <ResultsSection title="🏆 Most points" rows={top((a, b) => b.points - a.points).filter((m) => m.points > 0).map((m) => ({ id: m.profile.id, name: name(m), v: `${m.points} pts` }))} />
+      <ResultsSection title="📅 Most consistent (days logged)" rows={top((a, b) => b.daysLogged - a.daysLogged).filter((m) => m.daysLogged > 0).map((m) => ({ id: m.profile.id, name: name(m), v: `${m.daysLogged} days` }))} />
+      <ResultsSection title="💪 Most workouts" rows={top((a, b) => b.workouts - a.workouts, 3).filter((m) => m.workouts > 0).map((m) => ({ id: m.profile.id, name: name(m), v: `${m.workouts}` }))} />
+      <ResultsSection
+        title={`🏆 Most ${minDays}-workout-week trophies`}
+        rows={top((a, b) => (trophies.get(b.profile.id) ?? 0) - (trophies.get(a.profile.id) ?? 0), 3)
+          .filter((m) => (trophies.get(m.profile.id) ?? 0) > 0)
+          .map((m) => ({ id: m.profile.id, name: name(m), v: `${trophies.get(m.profile.id)}` }))}
+      />
+      <section className="mb-2">
+        <h3 className="mb-1 font-bold">⚖️ Held the line ({held.length})</h3>
+        <p className="mb-2 text-xs text-muted">Within 1 lb of their starting weight (or lower) on their latest weigh-in. Needs at least 2 weigh-ins.</p>
+        {held.length === 0 ? (
+          <p className="text-sm text-muted">Nobody yet. Remind everyone to do a final weigh-in!</p>
+        ) : (
+          <ul className="divide-y divide-line rounded-2xl bg-card-2 px-4">
+            {held.map((m) => (
+              <li key={m.profile.id} className="flex items-center justify-between py-2.5">
+                <span className="truncate font-medium">{name(m)}</span>
+                <span className="text-sm font-bold text-accent">
+                  {(m.weightChange ?? 0) > 0 ? "+" : ""}
+                  {(m.weightChange ?? 0).toFixed(1)} lbs
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </Sheet>
+  );
+}
+
+function ResultsSection({ title, rows }: { title: string; rows: { id: string; name: string; v: string }[] }) {
+  const medal = (i: number) => ["🥇", "🥈", "🥉"][i] ?? `${i + 1}.`;
+  return (
+    <section className="mb-5">
+      <h3 className="mb-2 font-bold">{title}</h3>
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted">Nobody yet.</p>
+      ) : (
+        <ol className="divide-y divide-line rounded-2xl bg-card-2 px-4">
+          {rows.map((r, i) => (
+            <li key={r.id} className="flex items-center gap-3 py-2.5">
+              <span className="w-7 text-center">{medal(i)}</span>
+              <span className="flex-1 truncate font-medium">{r.name}</span>
+              <span className="text-sm font-bold">{r.v}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   );
 }

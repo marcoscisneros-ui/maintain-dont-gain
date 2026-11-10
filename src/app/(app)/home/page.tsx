@@ -9,7 +9,7 @@ import { Ring } from "@/components/Ring";
 import { ButtonLink, Card } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { useSettings } from "@/lib/settings";
-import { formatDate, greeting, programStatus, todayISO } from "@/lib/dates";
+import { addDays, formatDate, greeting, hourCT, programStatus, todayISO } from "@/lib/dates";
 import { loadDaily, welcomeFallback, type DailyItem } from "@/lib/daily";
 import { DailyWelcome } from "@/components/DailyWelcome";
 import { CommunityCard } from "@/components/CommunityCard";
@@ -17,7 +17,8 @@ import { HeartButton } from "@/components/HeartButton";
 import { markSeenAndLoad, setHeart, type HeartState } from "@/lib/engagement";
 import { JingleBells, SeasonalFall } from "@/components/Seasonal";
 import { formatEventTime, lastSeenNews, loadAnnouncements, splitFeed, type Announcement } from "@/lib/content";
-import { pointsForDay } from "@/lib/points";
+import { bonusDays, multiplierFor, pointsForDay } from "@/lib/points";
+import { loadStreak } from "@/lib/streak";
 import { useRewards } from "@/lib/useRewards";
 import { loadLeaderboard, ranks } from "@/lib/leaderboard";
 
@@ -33,6 +34,13 @@ export default function HomePage() {
   const [daily, setDaily] = useState<{ coach: DailyItem | null; tip: DailyItem | null } | null>(null);
   const [heart, setHeartState] = useState<HeartState | null>(null);
   const { state: rewards } = useRewards(profile, settings);
+  const [streak, setStreak] = useState<{ streak: number; loggedToday: boolean } | null>(null);
+  const [evening, setEvening] = useState(false);
+  useEffect(() => {
+    if (!profile) return;
+    loadStreak(profile.id).then(setStreak).catch(() => {});
+    setEvening(hourCT() >= 17);
+  }, [profile]);
 
   const date = todayISO();
   const status = settings ? programStatus(settings.start_date, settings.end_date, date) : null;
@@ -120,6 +128,11 @@ export default function HomePage() {
           <h1 className="text-[26px] font-bold leading-tight tracking-tight">
             {greeting()}, {profile.first_name}
           </h1>
+          {streak && streak.streak >= 2 && (
+            <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-bold text-brand">
+              🔥 {streak.streak}-day streak
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
         {profile.is_admin && (
@@ -186,6 +199,58 @@ export default function HomePage() {
             <b>Add your phone number</b> so staff can reach you about prizes and events.
           </span>
           <ChevronRight className="size-4 text-muted" />
+        </Link>
+      )}
+
+      {(() => {
+        const mult = multiplierFor(date, settings);
+        if (mult > 1 && status.phase === "during")
+          return (
+            <Link href="/move" className="rise block rounded-3xl bg-gradient-to-r from-[#ff3d5a] via-[#ff6a2b] to-[#ff9f1a] p-4 text-center text-white shadow-[0_12px_28px_-14px_#ff3d5a]">
+              <p className="text-2xl font-black tracking-tight">🔥 {mult}X POINTS TODAY 🔥</p>
+              <p className="text-sm font-semibold text-white/90">Every workout you log today counts {mult === 2 ? "double" : `${mult} times`}. Go get it!</p>
+            </Link>
+          );
+        const next = bonusDays(settings).find((d) => d > date && d <= addDays(date, 3));
+        if (next)
+          return (
+            <p className="rise rounded-2xl bg-brand/10 px-4 py-3 text-center text-sm font-semibold text-brand">
+              🔥 {Math.max(2, Number(settings.bonus_multiplier) || 2)}X points day coming {formatDate(next, { weekday: "long", month: "short", day: "numeric" })}!
+            </p>
+          );
+        return null;
+      })()}
+
+      {date >= settings.end_date && (
+        <Link
+          href="/rewards"
+          onClick={() => {
+            try {
+              sessionStorage.setItem("mdg-open-finisher", "1");
+            } catch {}
+          }}
+          className="rise flex items-center gap-4 rounded-3xl bg-gradient-to-r from-[#1d1a17] to-[#4a2c00] p-4 text-white shadow-card"
+        >
+          <span className="text-4xl">🏆</span>
+          <span className="flex-1">
+            <span className="block text-lg font-black">You finished the challenge!</span>
+            <span className="block text-sm text-white/80">Get your Challenge Finisher certificate to share.</span>
+          </span>
+          <ChevronRight className="size-5 opacity-70" />
+        </Link>
+      )}
+
+      {/* Evening nudge: nothing logged yet today */}
+      {streak && !streak.loggedToday && evening && status.phase === "during" && (
+        <Link href="/food" className="rise flex items-center gap-3 rounded-3xl bg-ink px-4 py-3.5 text-bg shadow-card">
+          <span className="text-3xl">🔥</span>
+          <span className="flex-1">
+            <span className="block font-bold">
+              {streak.streak > 0 ? `Don't break your ${streak.streak}-day streak!` : "Nothing logged yet today"}
+            </span>
+            <span className="block text-sm opacity-80">A quick meal, your steps, or a workout keeps it going.</span>
+          </span>
+          <ChevronRight className="size-5 opacity-70" />
         </Link>
       )}
 

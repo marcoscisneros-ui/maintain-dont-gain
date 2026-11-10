@@ -43,6 +43,9 @@ Run `supabase/07_wheel_prizes.sql` the same way (safe to run more than once). Lo
 ### 2h. Phone numbers + 5-day spin update
 Run `supabase/08_phone_and_spin5.sql` the same way (safe to run more than once). Adds members' phone numbers and sets the prize wheel to 5 workout days per week.
 
+### 2i. Bonus point days update
+Run `supabase/09_bonus_days.sql` the same way (safe to run more than once). Lets you pick 2X point days in Admin → Settings → Points.
+
 ### 3. Lock down sign-ups (important)
 **Authentication → Sign In / Providers → Email** (or **Authentication → Settings**):
 - Turn **OFF** "Allow new users to sign up". (The app creates accounts itself. This stops anyone from going around it.)

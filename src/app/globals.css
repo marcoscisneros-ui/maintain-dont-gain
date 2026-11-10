@@ -178,3 +178,13 @@ input[type="number"] { -moz-appearance: textfield; }
 @media (prefers-reduced-motion: reduce) {
   .celebrate-spin, .celebrate-rays, .celebrate-pop { animation: none; }
 }
+
+/* ---------- printing (front-desk poster) ---------- */
+@media print {
+  @page { size: letter; margin: 0; }
+  html, body { background: #fff !important; }
+  nav, .no-print { display: none !important; }
+  .poster { width: 8.5in !important; height: 11in !important; max-width: none !important; aspect-ratio: auto !important; }
+  .poster, .poster * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  main { padding: 0 !important; max-width: none !important; }
+}

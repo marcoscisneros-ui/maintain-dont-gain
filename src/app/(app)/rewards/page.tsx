@@ -14,8 +14,9 @@ import { useRewards } from "@/lib/useRewards";
 import { addDays, formatDate, todayISO } from "@/lib/dates";
 import { buildWheel, type Spin } from "@/lib/rewards";
 import { playTada } from "@/lib/sound";
-import { TrophySheet } from "@/components/TrophySheet";
-import { TROPHY_DATA_URL, weekLabel, type TrophyInfo } from "@/lib/trophy";
+import { TrophySheet, trophySpec, type AwardSpec } from "@/components/TrophySheet";
+import { loadLeaderboard } from "@/lib/leaderboard";
+import { TROPHY_DATA_URL, renderAwardJPG, weekLabel } from "@/lib/trophy";
 import { useMemo } from "react";
 
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -32,7 +33,8 @@ export default function RewardsPage() {
   const [error, setError] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const [winner, setWinner] = useState<number | null>(null);
-  const [trophy, setTrophy] = useState<TrophyInfo | null>(null);
+  const [award, setAward] = useState<AwardSpec | null>(null);
+  const [finisherStats, setFinisherStats] = useState<{ points: number; workouts: number } | null>(null);
   const [party, setParty] = useState(false);
   const slices = useMemo(() => buildWheel(state?.prizes ?? []), [state?.prizes]);
   const trophies = useMemo(() => {
@@ -56,9 +58,50 @@ export default function RewardsPage() {
       if (!wanted) return;
       sessionStorage.removeItem("mdg-open-trophy");
       const t = trophies.find((x) => x.weekStart === wanted);
-      if (t) setTrophy(t);
+      if (t) setAward(trophySpec(t));
     } catch {}
   }, [trophies]);
+
+  const finished = !!settings && todayISO() >= settings.end_date;
+  useEffect(() => {
+    if (!finished || !profile) return;
+    loadLeaderboard().then((rows) => {
+      const me = rows.find((r) => r.user_id === profile.id);
+      setFinisherStats({ points: me?.points ?? 0, workouts: me?.workouts ?? 0 });
+    });
+  }, [finished, profile]);
+  const finisherSpec = (): AwardSpec | null => {
+    if (!finisherStats || !profile || !settings) return null;
+    const name = `${profile.first_name} ${profile.last_name}`;
+    const range = `${formatDate(settings.start_date, { month: "short", day: "numeric" })} – ${formatDate(settings.end_date, { month: "short", day: "numeric", year: "numeric" })}`;
+    return {
+      title: "🎉 Challenge Finisher",
+      alt: `Challenge Finisher certificate for ${name}`,
+      fileName: "mdg-challenge-finisher.jpg",
+      shareTitle: "I finished Maintain, Don't Gain!",
+      shareText: "I made it through the holidays! 🎉 #MaintainDontGain",
+      render: () =>
+        renderAwardJPG({
+          plaque: "FINISHER",
+          title: "CHALLENGE FINISHER!",
+          name,
+          line1: `${finisherStats.workouts} workouts · ${finisherStats.points} points · ${trophies.length} ${trophies.length === 1 ? "trophy" : "trophies"}`,
+          line2: `Maintain, Don't Gain · ${range}`,
+          line3: "Made it through every holiday 💪",
+        }),
+    };
+  };
+  useEffect(() => {
+    if (!finisherStats) return;
+    try {
+      if (sessionStorage.getItem("mdg-open-finisher")) {
+        sessionStorage.removeItem("mdg-open-finisher");
+        const sp = finisherSpec();
+        if (sp) setAward(sp);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finisherStats]);
 
   const emojiFor = (sp: Spin) => state?.prizes.find((p) => p.id === sp.prize_id)?.emoji ?? "🎁";
 
@@ -173,6 +216,23 @@ export default function RewardsPage() {
           {/* Trophies */}
           <section className="rise" style={{ animationDelay: "60ms" }}>
             <SectionTitle>My trophies 🏆</SectionTitle>
+            {finished && (
+              <button
+                onClick={() => {
+                  const sp = finisherSpec();
+                  if (sp) setAward(sp);
+                }}
+                disabled={!finisherStats}
+                className="mb-2 flex w-full items-center gap-4 rounded-3xl bg-gradient-to-r from-[#1d1a17] to-[#4a2c00] p-4 text-left text-white shadow-card transition active:scale-[0.99]"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={TROPHY_DATA_URL} alt="" className="size-16 drop-shadow-lg" />
+                <span className="flex-1">
+                  <span className="block text-lg font-black">🎉 Challenge Finisher</span>
+                  <span className="block text-sm text-white/80">You made it through every holiday. Get your certificate to share!</span>
+                </span>
+              </button>
+            )}
             {trophies.length === 0 ? (
               <Empty>Work out {state.minDays} different days in a week to earn a trophy you can share.</Empty>
             ) : (
@@ -180,7 +240,7 @@ export default function RewardsPage() {
                 {trophies.map((t) => (
                   <button
                     key={t.weekStart}
-                    onClick={() => setTrophy(t)}
+                    onClick={() => setAward(trophySpec(t))}
                     className="flex flex-col items-center rounded-3xl bg-gradient-to-b from-[#f29445] to-[#c8283f] p-4 text-white shadow-card transition active:scale-[0.97]"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -229,7 +289,7 @@ export default function RewardsPage() {
       )}
 
       {party && <Confetti />}
-      {trophy && <TrophySheet info={trophy} facebookUrl={settings.facebook_url} onClose={() => setTrophy(null)} />}
+      {award && <TrophySheet spec={award} facebookUrl={settings.facebook_url} onClose={() => setAward(null)} />}
       {won && (
         <Sheet title="🎉 Winner!" onClose={() => setWon(null)}>
           <div className="prize-pop mb-4 text-center">

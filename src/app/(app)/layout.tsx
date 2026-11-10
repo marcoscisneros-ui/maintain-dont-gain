@@ -23,7 +23,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading || !session || !profile || needsSetup) return <FullScreenLoader />;
 
-  const showNav = path !== "/setup";
+  const showNav = path !== "/setup" && path !== "/poster";
   return (
     <>
       <CelebrationProvider>

@@ -9,6 +9,8 @@ import { loadLeaderboard, ranks, type Row } from "@/lib/leaderboard";
 import { TierBadge } from "@/components/TierBadge";
 import { CommunityCard } from "@/components/CommunityCard";
 import { useSettings } from "@/lib/settings";
+import { bonusDays } from "@/lib/points";
+import { formatDate, todayISO } from "@/lib/dates";
 import { classLink } from "@/lib/classLink";
 
 export default function CrewPage() {
@@ -129,6 +131,15 @@ export default function CrewPage() {
           <li className="flex justify-between"><span>🔥 Take a class</span><b>{settings.points_class} pts</b></li>
           <li className="flex justify-between"><span>🤝 Personal training session</span><b>{settings.points_pt || 5} pts</b></li>
         </ul>
+        {bonusDays(settings).filter((d) => d >= todayISO()).length > 0 && (
+          <p className="mt-3 rounded-xl bg-brand/10 px-3 py-2 font-semibold text-brand">
+            🔥 {Math.max(2, Number(settings.bonus_multiplier) || 2)}X points days:{" "}
+            {bonusDays(settings)
+              .filter((d) => d >= todayISO())
+              .map((d) => formatDate(d, { weekday: "short", month: "short", day: "numeric" }))
+              .join(" · ")}
+          </p>
+        )}
         {Number(settings.daily_point_cap) > 0 && (
           <p className="mt-3 text-muted">Max {settings.daily_point_cap} points per day. Consistency beats cramming.</p>
         )}

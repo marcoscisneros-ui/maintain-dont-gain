@@ -5,10 +5,11 @@ import { ImageField } from "@/components/ImageField";
 import { Button, Card, ErrorText, Field, Input } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { loadSettings, type Settings } from "@/lib/settings";
+import { formatDate } from "@/lib/dates";
 
 const KEYS = [
   "coach_name", "coach_title", "coach_photo_url", "groupme_url", "facebook_url", "class_url_ios", "class_url_android", "class_url", "join_code",
-  "points_home", "points_gym", "points_class", "points_pt", "class_names", "daily_point_cap", "spin_min_days", "start_date", "end_date",
+  "points_home", "points_gym", "points_class", "points_pt", "class_names", "daily_point_cap", "spin_min_days", "bonus_days", "bonus_multiplier", "start_date", "end_date",
 ] as const;
 type Key = (typeof KEYS)[number];
 
@@ -45,6 +46,14 @@ export function SettingsPanel() {
 
   return (
     <div className="space-y-4">
+      <a href="/poster" className="flex items-center gap-3 rounded-3xl bg-gradient-to-br from-[#c8283f] to-[#e8762c] p-4 text-white shadow-card">
+        <span className="text-2xl">🖨️</span>
+        <span className="flex-1">
+          <span className="block font-bold">Front-desk QR poster</span>
+          <span className="block text-sm text-white/85">Print a &quot;Scan to join&quot; sign for the counter</span>
+        </span>
+        <span className="text-xl">›</span>
+      </a>
       <Card className="space-y-4">
         <h3 className="font-semibold">You (shown on daily messages)</h3>
         <ImageField value={s.coach_photo_url || null} onChange={(u) => set("coach_photo_url")(u ?? "")} folder="coach" label="Upload your headshot" round />
@@ -88,6 +97,14 @@ export function SettingsPanel() {
 
       <Card className="space-y-4">
         <h3 className="font-semibold">Points</h3>
+        <BonusDays
+          value={s.bonus_days}
+          multiplier={s.bonus_multiplier}
+          startDate={s.start_date}
+          endDate={s.end_date}
+          onChange={set("bonus_days")}
+          onMultiplier={set("bonus_multiplier")}
+        />
         <div className="grid grid-cols-2 gap-3">
           <Field label="🏠 Home">
             <Input {...bind("points_home")} type="number" inputMode="numeric" suffix="pts" />
@@ -134,6 +151,101 @@ export function SettingsPanel() {
           {saved ? "Saved ✓" : "Save settings"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/** Pick dates where every workout earns extra points (e.g. 2X on Black Friday). */
+function BonusDays({
+  value,
+  multiplier,
+  startDate,
+  endDate,
+  onChange,
+  onMultiplier,
+}: {
+  value: string;
+  multiplier: string;
+  startDate: string;
+  endDate: string;
+  onChange: (v: string) => void;
+  onMultiplier: (v: string) => void;
+}) {
+  const [pick, setPick] = useState("");
+  const days = value.split(",").map((d) => d.trim()).filter(Boolean).sort();
+  const save = (list: string[]) => onChange([...new Set(list)].sort().join(","));
+
+  // Holiday suggestions for this challenge's year
+  const y = Number(startDate.slice(0, 4));
+  const nov1 = new Date(Date.UTC(y, 10, 1)).getUTCDay();
+  const thanksgiving = 1 + ((4 - nov1 + 7) % 7) + 21;
+  const iso = (m: number, d: number, yr = y) => `${yr}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const ideas = [
+    { d: iso(11, thanksgiving - 1), label: "Thanksgiving Eve" },
+    { d: iso(11, thanksgiving + 1), label: "Black Friday" },
+    { d: iso(12, 24), label: "Christmas Eve" },
+    { d: iso(12, 26), label: "Dec 26" },
+    { d: iso(12, 31), label: "New Year's Eve" },
+    { d: iso(1, 1, y + 1), label: "New Year's Day" },
+  ].filter((i) => i.d >= startDate && i.d <= endDate && !days.includes(i.d));
+
+  return (
+    <div className="space-y-3 rounded-2xl bg-card-2 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="font-medium">🔥 Bonus point days</p>
+          <p className="text-xs text-muted">Workouts on these days earn extra points. Members see a banner that day.</p>
+        </div>
+        <label className="flex items-center gap-1 text-sm font-bold">
+          <input
+            type="number"
+            inputMode="numeric"
+            min={2}
+            max={5}
+            value={multiplier}
+            onChange={(e) => onMultiplier(e.target.value)}
+            className="h-10 w-12 rounded-xl bg-card text-center ring-1 ring-line outline-none"
+            aria-label="Points multiplier"
+          />
+          X
+        </label>
+      </div>
+      {days.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {days.map((d) => (
+            <span key={d} className="inline-flex items-center gap-1 rounded-full bg-brand/12 py-1 pr-1 pl-3 text-sm font-semibold text-brand">
+              {formatDate(d, { weekday: "short", month: "short", day: "numeric" })}
+              <button onClick={() => save(days.filter((x) => x !== d))} className="rounded-full px-1.5 text-base leading-none" aria-label={`Remove ${d}`}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <Input type="date" value={pick} min={startDate} max={endDate} onChange={(e) => setPick(e.target.value)} className="h-10 bg-card text-sm" />
+        <button
+          type="button"
+          disabled={!pick}
+          onClick={() => {
+            save([...days, pick]);
+            setPick("");
+          }}
+          className="rounded-xl bg-ink px-4 text-sm font-bold text-bg disabled:opacity-40"
+        >
+          Add
+        </button>
+      </div>
+      {ideas.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {ideas.map((i) => (
+            <button key={i.d} type="button" onClick={() => save([...days, i.d])} className="rounded-full px-3 py-1 text-xs font-medium ring-1 ring-line">
+              + {i.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="text-xs text-muted">Don&apos;t forget to tap Save settings.</p>
     </div>
   );
 }

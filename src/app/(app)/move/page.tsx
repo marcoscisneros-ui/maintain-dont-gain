@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { useSettings } from "@/lib/settings";
 import { classLink } from "@/lib/classLink";
 import { addDays, formatDate, todayISO } from "@/lib/dates";
-import { LOCATIONS, pointValues, pointsForDay, type Location } from "@/lib/points";
+import { LOCATIONS, multiplierFor, pointValues, pointsForDay, type Location } from "@/lib/points";
 import { StarRating } from "@/components/StarRating";
 import { sessionsLeft } from "@/lib/tiers";
 
@@ -62,7 +62,9 @@ export default function MovePage() {
   }, [load]);
 
   if (!profile || !settings) return null;
-  const pv = pointValues(settings);
+  const mult = multiplierFor(date, settings);
+  const pv0 = pointValues(settings);
+  const pv = Object.fromEntries(Object.entries(pv0).map(([k, v]) => [k, v * mult])) as typeof pv0;
   const classNames = (settings.class_names || "").split(",").map((c) => c.trim()).filter(Boolean);
   const left = sessionsLeft(profile);
   const dayWorkouts = week.workouts.filter((w) => w.date === date);
@@ -182,6 +184,11 @@ export default function MovePage() {
         >
           Log a workout
         </SectionTitle>
+        {mult > 1 && (
+          <p className="rounded-2xl bg-gradient-to-r from-[#ff3d5a] to-[#ff9f1a] px-4 py-2.5 text-center text-sm font-black text-white">
+            🔥 {mult}X POINTS {date === todayISO() ? "TODAY" : "THIS DAY"}. Every workout counts {mult === 2 ? "double" : `${mult} times`}!
+          </p>
+        )}
         <div className="grid grid-cols-2 gap-2">
           {LOCATIONS.map((l) => (
             <button

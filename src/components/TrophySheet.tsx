@@ -6,18 +6,32 @@ import { Sheet } from "./Sheet";
 import { Button, ButtonLink, Spinner } from "./ui";
 import { renderTrophyJPG, type TrophyInfo } from "@/lib/trophy";
 
+export type AwardSpec = { title: string; alt: string; fileName: string; shareTitle: string; shareText: string; render: () => Promise<Blob> };
+
+export function trophySpec(info: TrophyInfo): AwardSpec {
+  return {
+    title: "🏆 Your trophy",
+    alt: `${info.days}-Workout Week trophy for ${info.name}`,
+    fileName: `mdg-trophy-week-${info.weekNo}.jpg`,
+    shareTitle: `My ${info.days}-Workout Week trophy`,
+    shareText: `${info.days} workouts this week! 🏆 #MaintainDontGain`,
+    render: () => renderTrophyJPG(info),
+  };
+}
+
 /** Preview of the shareable trophy picture, with Share / Save / open Facebook group. */
-export function TrophySheet({ info, facebookUrl, onClose }: { info: TrophyInfo; facebookUrl?: string; onClose: () => void }) {
+export function TrophySheet({ spec, facebookUrl, onClose }: { spec: AwardSpec; facebookUrl?: string; onClose: () => void }) {
   const [blob, setBlob] = useState<Blob | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
-  const fileName = `mdg-trophy-week-${info.weekNo}.jpg`;
+  const fileName = spec.fileName;
 
   useEffect(() => {
     let alive = true;
     let objectUrl: string | null = null;
-    renderTrophyJPG(info)
+    spec
+      .render()
       .then((b) => {
         if (!alive) return;
         objectUrl = URL.createObjectURL(b);
@@ -29,7 +43,8 @@ export function TrophySheet({ info, facebookUrl, onClose }: { info: TrophyInfo; 
       alive = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [info]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spec.fileName]);
 
   const file = blob ? new File([blob], fileName, { type: "image/jpeg" }) : null;
   const canShare = !!file && typeof navigator !== "undefined" && !!navigator.canShare?.({ files: [file] });
@@ -37,7 +52,7 @@ export function TrophySheet({ info, facebookUrl, onClose }: { info: TrophyInfo; 
   async function share() {
     if (!file) return;
     try {
-      await navigator.share({ files: [file], title: `My ${info.days}-Workout Week trophy`, text: `${info.days} workouts this week! 🏆 #MaintainDontGain` });
+      await navigator.share({ files: [file], title: spec.shareTitle, text: spec.shareText });
     } catch {
       /* closed the share sheet */
     }
@@ -55,11 +70,11 @@ export function TrophySheet({ info, facebookUrl, onClose }: { info: TrophyInfo; 
   }
 
   return (
-    <Sheet title="🏆 Your trophy" onClose={onClose}>
+    <Sheet title={spec.title} onClose={onClose}>
       <div className="overflow-hidden rounded-2xl bg-card-2 ring-1 ring-line">
         {url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt={`${info.days}-Workout Week trophy for ${info.name}`} className="w-full" />
+          <img src={url} alt={spec.alt} className="w-full" />
         ) : (
           <div className="flex aspect-[4/5] items-center justify-center text-brand">{error || <Spinner className="size-8" />}</div>
         )}
