@@ -184,7 +184,8 @@ input[type="number"] { -moz-appearance: textfield; }
   @page { size: letter; margin: 0; }
   html, body { background: #fff !important; }
   nav, .no-print { display: none !important; }
-  .poster { width: 8.5in !important; height: 11in !important; max-width: none !important; aspect-ratio: auto !important; }
+  .poster { width: 8.5in !important; height: 11in !important; max-width: none !important; margin: 0 !important; }
+  .poster img { width: 8.5in !important; height: 11in !important; }
   .poster, .poster * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   main { padding: 0 !important; max-width: none !important; }
 }
