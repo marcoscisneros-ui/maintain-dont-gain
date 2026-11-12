@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Check, Plus, Search, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { Button, Card, Chip, Empty, ErrorText, Input, Toggle, cn } from "@/components/ui";
@@ -9,6 +9,9 @@ import { fetchAll } from "@/lib/admin";
 import { formatDate } from "@/lib/dates";
 import { timeAgo } from "@/lib/content";
 import { prizeShare, type Prize, type Spin } from "@/lib/rewards";
+import { isUnlocked, type Voucher } from "@/lib/vouchers";
+import { useSettings } from "@/lib/settings";
+import { VoucherRow } from "./VoucherRow";
 
 /** Front desk: look up a certificate code, mark prizes redeemed, and set up the wheel. */
 export function Rewards() {
@@ -17,7 +20,9 @@ export function Rewards() {
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [names, setNames] = useState<Map<string, string>>(new Map());
   const [q, setQ] = useState("");
-  const [view, setView] = useState<"waiting" | "redeemed">("waiting");
+  const [view, setView] = useState<"waiting" | "redeemed" | "inbody">("waiting");
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const settings = useSettings();
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState("");
 
@@ -32,6 +37,11 @@ export function Rewards() {
       setSpins(s.reverse());
       setPrizes(p);
       setNames(new Map(people.map((x) => [x.id, `${x.first_name} ${x.last_name}`])));
+      try {
+        setVouchers(await fetchAll<Voucher>("vouchers", "*", "id"));
+      } catch {
+        /* vouchers update (10_inbody_vouchers.sql) not installed yet */
+      }
     } catch {
       setError("Couldn't load rewards. Has 06_rewards.sql been run in Supabase?");
       setSpins([]);
@@ -41,14 +51,15 @@ export function Rewards() {
     load();
   }, [load]);
 
-  const query = q.trim().toUpperCase().replace(/^MDG-?/, "");
-  const shown = useMemo(() => {
-    const list = (spins ?? []).filter((s) => (view === "waiting" ? !s.redeemed_at : !!s.redeemed_at));
-    if (!query) return list;
-    return (spins ?? []).filter(
-      (s) => s.code.includes(query) || (names.get(s.user_id) ?? "").toUpperCase().includes(query),
-    );
-  }, [spins, view, query, names]);
+  const query = q.trim().toUpperCase().replace(/^(MDG|IB)-?/, "");
+  const matchedVouchers = query
+    ? vouchers.filter((v) => v.code.includes(query) || (names.get(v.user_id) ?? "").toUpperCase().includes(query))
+    : [];
+  const usedVouchers = vouchers.filter((v) => v.redeemed_at).sort((a, b) => b.redeemed_at!.localeCompare(a.redeemed_at!));
+  const readyVouchers = settings ? vouchers.filter((v) => !v.redeemed_at && isUnlocked(v, settings)).length : 0;
+  const shown = query
+    ? (spins ?? []).filter((s) => s.code.includes(query) || (names.get(s.user_id) ?? "").toUpperCase().includes(query))
+    : (spins ?? []).filter((s) => (view === "waiting" ? !s.redeemed_at : !!s.redeemed_at));
 
   async function redeem(s: Spin, undo = false) {
     setBusy(s.id);
@@ -72,7 +83,7 @@ export function Rewards() {
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Certificate code or name"
+          placeholder="Code (MDG-… or IB-…) or name"
           className="pl-10 font-mono text-base uppercase"
           autoCapitalize="characters"
           autoCorrect="off"
@@ -87,13 +98,32 @@ export function Rewards() {
           <Chip selected={view === "redeemed"} onClick={() => setView("redeemed")}>
             Redeemed ({(spins ?? []).length - waiting})
           </Chip>
+          {vouchers.length > 0 && (
+            <Chip selected={view === "inbody"} onClick={() => setView("inbody")}>
+              📊 InBody
+            </Chip>
+          )}
         </div>
       )}
 
-      {!spins ? (
+      {settings && (query ? matchedVouchers.length > 0 : view === "inbody") && (
+        <section className="space-y-2">
+          {!query && (
+            <p className="text-sm text-muted">
+              <b className="text-ink">{readyVouchers}</b> scans ready to use · <b className="text-ink">{usedVouchers.length}</b> used. Search a code (like
+              IB-7K3Q) or a name to mark one used.
+            </p>
+          )}
+          {(query ? matchedVouchers : usedVouchers.slice(0, 20)).map((v) => (
+            <VoucherRow key={v.id} v={v} name={names.get(v.user_id)} settings={settings} onChanged={load} />
+          ))}
+        </section>
+      )}
+
+      {view === "inbody" && !query ? null : !spins ? (
         <div className="h-40 animate-pulse rounded-3xl bg-card" />
       ) : shown.length === 0 ? (
-        <Empty>{query ? "No certificate matches that." : view === "waiting" ? "No prizes waiting to be claimed." : "Nothing redeemed yet."}</Empty>
+        query && matchedVouchers.length ? null : <Empty>{query ? "No certificate or InBody voucher matches that." : view === "waiting" ? "No prizes waiting to be claimed." : "Nothing redeemed yet."}</Empty>
       ) : (
         <div className="space-y-2">
           {shown.map((s) => (

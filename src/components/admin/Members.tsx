@@ -12,6 +12,8 @@ import { formatPhone } from "@/lib/phone";
 import { TierBadge } from "@/components/TierBadge";
 import { TIERS, TIER_ORDER, type Tier } from "@/lib/tiers";
 import { weeklyProgress } from "@/lib/rewards";
+import { VoucherRow } from "./VoucherRow";
+import type { Voucher } from "@/lib/vouchers";
 import { Minus } from "lucide-react";
 import { useSettings } from "@/lib/settings";
 import { formatDate, todayISO } from "@/lib/dates";
@@ -319,6 +321,8 @@ function MemberSheet({ m, onClose, onChanged, onDirty }: { m: MemberStats; onClo
 
       <TierControls m={m} onChanged={onDirty} />
 
+      <MemberVouchers userId={p.id} />
+
       <h3 className="mt-6 mb-2 font-semibold">Weigh-ins & InBody</h3>
       {m.scans.length === 0 ? (
         <Empty>No scans yet.</Empty>
@@ -591,5 +595,28 @@ function ResultsSection({ title, rows }: { title: string; rows: { id: string; na
         </ol>
       )}
     </section>
+  );
+}
+
+function MemberVouchers({ userId }: { userId: string }) {
+  const settings = useSettings();
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const load = useCallback(async () => {
+    const { data } = await supabase().from("vouchers").select("*").eq("user_id", userId).order("slot");
+    setVouchers((data ?? []) as Voucher[]);
+  }, [userId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+  if (!settings || vouchers.length === 0) return null;
+  return (
+    <div className="mt-6">
+      <h3 className="mb-2 font-semibold">Free InBody scans</h3>
+      <div className="space-y-2">
+        {vouchers.map((v) => (
+          <VoucherRow key={v.id} v={v} settings={settings} onChanged={load} compact />
+        ))}
+      </div>
+    </div>
   );
 }

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, FileImage, Lock, Plus, Trash2, X } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/Toast";
+import { InBodyVouchers } from "@/components/Vouchers";
+import { useSettings } from "@/lib/settings";
 import { useCelebrate } from "@/components/Celebration";
 import { Button, Card, Empty, ErrorText, Field, Input, PageHeader, SectionTitle, Spinner, Toggle, cn } from "@/components/ui";
 import { HeightInput, formatHeight, isValidHeight } from "@/components/HeightInput";
@@ -25,6 +27,7 @@ type Photo = { id: number; date: string; path: string; note: string | null };
 export default function ProgressPage() {
   const { profile, refreshProfile } = useAuth();
   const toast = useToast();
+  const settings = useSettings();
   const celebrate = useCelebrate();
   const [scans, setScans] = useState<Scan[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -90,6 +93,8 @@ export default function ProgressPage() {
     <div className="space-y-4 pt-6">
       {toast.node}
       <PageHeader title="Progress" subtitle="Holding steady is winning." />
+
+      {settings && <InBodyVouchers userId={profile.id} settings={settings} name={`${profile.first_name} ${profile.last_name}`} />}
 
       {/* Change from start */}
       <Card className="rise">
