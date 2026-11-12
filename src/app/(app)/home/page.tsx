@@ -19,6 +19,8 @@ import { JingleBells, SeasonalFall } from "@/components/Seasonal";
 import { formatEventTime, lastSeenNews, loadAnnouncements, splitFeed, type Announcement } from "@/lib/content";
 import { bonusDays, multiplierFor, pointsForDay } from "@/lib/points";
 import { loadStreak } from "@/lib/streak";
+import { loadInbox, type InboxItem } from "@/lib/messages";
+import { Bell } from "lucide-react";
 import { useRewards } from "@/lib/useRewards";
 import { loadLeaderboard, ranks } from "@/lib/leaderboard";
 
@@ -36,6 +38,11 @@ export default function HomePage() {
   const { state: rewards } = useRewards(profile, settings);
   const [streak, setStreak] = useState<{ streak: number; loggedToday: boolean } | null>(null);
   const [evening, setEvening] = useState(false);
+  const [inbox, setInbox] = useState<InboxItem[]>([]);
+  useEffect(() => {
+    if (profile) loadInbox(profile.id).then(setInbox);
+  }, [profile]);
+  const unread = inbox.filter((i) => !i.read_at);
   useEffect(() => {
     if (!profile) return;
     loadStreak(profile.id).then(setStreak).catch(() => {});
@@ -135,6 +142,14 @@ export default function HomePage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+        <Link href="/inbox" aria-label={unread.length ? `Inbox, ${unread.length} new` : "Inbox"} className="relative flex size-11 items-center justify-center rounded-full bg-card shadow-card ring-1 ring-line/60">
+          <Bell className="size-5" />
+          {unread.length > 0 && (
+            <span className="pop absolute -top-1 -right-1 flex min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[11px] font-bold text-white ring-2 ring-bg">
+              {unread.length}
+            </span>
+          )}
+        </Link>
         {profile.is_admin && (
           <Link href="/admin" className="rounded-full bg-violet/12 px-3 py-1.5 text-xs font-bold text-violet ring-1 ring-violet/25">
             Admin
@@ -237,6 +252,19 @@ export default function HomePage() {
             <span className="block text-sm text-white/80">Get your Challenge Finisher certificate to share.</span>
           </span>
           <ChevronRight className="size-5 opacity-70" />
+        </Link>
+      )}
+
+      {unread.length > 0 && (
+        <Link href="/inbox" className="rise flex items-center gap-3 rounded-3xl bg-card p-4 shadow-card ring-2 ring-brand/40">
+          <span className="text-3xl">📬</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">
+              {unread.length === 1 ? `New message from ${settings.coach_name || "Marcos"}` : `${unread.length} new messages`}
+            </span>
+            <span className="block truncate text-sm text-muted">{unread[0].messages!.title || unread[0].messages!.body}</span>
+          </span>
+          <ChevronRight className="size-5 text-muted" />
         </Link>
       )}
 

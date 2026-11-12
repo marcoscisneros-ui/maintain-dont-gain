@@ -13,6 +13,7 @@ import { TierBadge } from "@/components/TierBadge";
 import { TIERS, TIER_ORDER, type Tier } from "@/lib/tiers";
 import { weeklyProgress } from "@/lib/rewards";
 import { VoucherRow } from "./VoucherRow";
+import { MessagesSheet } from "./Messages";
 import type { Voucher } from "@/lib/vouchers";
 import { Minus } from "lucide-react";
 import { useSettings } from "@/lib/settings";
@@ -42,6 +43,7 @@ const SORTS: { id: SortKey; label: string }[] = [
 ];
 
 export function Members() {
+  const { profile: me } = useAuth();
   const settings = useSettings();
   const [data, setData] = useState<AllData | null>(null);
   const [error, setError] = useState("");
@@ -51,6 +53,7 @@ export function Members() {
   const [open, setOpen] = useState<MemberStats | null>(null);
   const [dirty, setDirty] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [messageTo, setMessageTo] = useState<string[] | null>(null);
 
   const load = useCallback(async () => {
     setError("");
@@ -127,6 +130,9 @@ export function Members() {
         )}
       </Card>
 
+      <Button className="w-full" onClick={() => setMessageTo([])}>
+        ✉️ Message members
+      </Button>
       <Button variant="secondary" className="w-full" onClick={() => setShowResults(true)}>
         🏁 Final results &amp; winners
       </Button>
@@ -162,8 +168,8 @@ export function Members() {
         <Card className="p-2">
           <ul className="divide-y divide-line">
             {shown.map((m, i) => (
-              <li key={m.profile.id}>
-                <button onClick={() => setOpen(m)} className="flex w-full items-center gap-3 px-2 py-3 text-left active:bg-card-2 rounded-2xl">
+              <li key={m.profile.id} className="flex items-center">
+                <button onClick={() => setOpen(m)} className="flex min-w-0 flex-1 items-center gap-3 px-2 py-3 text-left active:bg-card-2 rounded-2xl">
                   <span className="w-5 text-center text-sm font-bold text-muted">{i + 1}</span>
                   <Avatar url={m.profile.avatar_url} name={`${m.profile.first_name} ${m.profile.last_name}`} size={42} />
                   <div className="min-w-0 flex-1">
@@ -185,17 +191,41 @@ export function Members() {
                     <WeightBadge v={m.weightChange} />
                   </div>
                 </button>
+                {m.profile.id !== me?.id && (
+                  <button
+                    onClick={async () => {
+                      const n = `${m.profile.first_name} ${m.profile.last_name}`;
+                      if (!confirm(`Remove ${n} and ALL of their logs and photos? This can't be undone.`)) return;
+                      try {
+                        await adminAction("delete_member", m.profile.id);
+                        load();
+                      } catch (e) {
+                        alert(`Couldn't remove ${n}: ${(e as Error).message}`);
+                      }
+                    }}
+                    className="shrink-0 rounded-xl p-2.5 text-muted active:text-danger"
+                    aria-label={`Remove ${m.profile.first_name} ${m.profile.last_name}`}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                )}
               </li>
             ))}
           </ul>
         </Card>
       )}
 
+      {messageTo && <MessagesSheet stats={stats} presetIds={messageTo} onClose={() => setMessageTo(null)} />}
       {showResults && data && settings && <ResultsSheet stats={stats} data={data} minDays={Number(settings.spin_min_days) || 5} start={settings.start_date} end={settings.end_date} onClose={() => setShowResults(false)} />}
       {open && (
         <MemberSheet
           m={open}
           onDirty={() => setDirty(true)}
+          onMessage={() => {
+            const id = open.profile.id;
+            setOpen(null);
+            setMessageTo([id]);
+          }}
           onClose={() => {
             setOpen(null);
             if (dirty) {
@@ -233,7 +263,7 @@ function WeightBadge({ v }: { v: number | null }) {
   );
 }
 
-function MemberSheet({ m, onClose, onChanged, onDirty }: { m: MemberStats; onClose: () => void; onChanged: () => void; onDirty: () => void }) {
+function MemberSheet({ m, onClose, onChanged, onDirty, onMessage }: { m: MemberStats; onClose: () => void; onChanged: () => void; onDirty: () => void; onMessage: () => void }) {
   const { profile: me } = useAuth();
   const p = m.profile;
   const name = `${p.first_name} ${p.last_name}`;
@@ -293,6 +323,9 @@ function MemberSheet({ m, onClose, onChanged, onDirty }: { m: MemberStats; onClo
         </div>
       </div>
 
+      <button onClick={onMessage} className="mt-3 mr-2 inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-3 py-1.5 text-xs font-semibold text-brand">
+        ✉️ Message
+      </button>
       {p.id !== me?.id && (
         <button
           onClick={() => {

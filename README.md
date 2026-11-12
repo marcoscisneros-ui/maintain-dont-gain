@@ -49,6 +49,9 @@ Run `supabase/09_bonus_days.sql` the same way (safe to run more than once). Lets
 ### 2j. InBody voucher update
 Run `supabase/10_inbody_vouchers.sql` the same way (safe to run more than once). Every member (including people who already joined) gets 3 free InBody scan vouchers: 2 ready right away, 1 that unlocks in the challenge's final week.
 
+### 2k. Messages update
+Run `supabase/11_messages.sql` the same way (safe to run more than once). Lets staff send messages to members' in-app inbox.
+
 ### 3. Lock down sign-ups (important)
 **Authentication → Sign In / Providers → Email** (or **Authentication → Settings**):
 - Turn **OFF** "Allow new users to sign up". (The app creates accounts itself. This stops anyone from going around it.)
@@ -76,7 +79,7 @@ From then on, every time code is pushed to GitHub, Vercel redeploys automaticall
 
 ## Running the challenge (admin)
 Log in as usual. Admins see an **Admin** button at the top of Home (and on the profile page).
-- **Members:** engagement (days logged, streak, last seen), points, InBody changes, progress photos. Levels: Free / 🥇 Gold (4 PT sessions) / 💎 Diamond (8). Gold and Diamond show as pending until you tap **Confirm** after they pay; use **+1 session** after each personal training session. Tap a member to reset their PIN, make them staff/admin, or remove them. Download **Summary CSV** or **All logs CSV**.
+- **Members:** ✉️ **Message members** (everyone, one person, picked members, Gold, Diamond, pending, or who hasn't logged today; see who read it, or text them instead). 🗑 on any row removes a member. Engagement (days logged, streak, last seen), points, InBody changes, progress photos. Levels: Free / 🥇 Gold (4 PT sessions) / 💎 Diamond (8). Gold and Diamond show as pending until you tap **Confirm** after they pay; use **+1 session** after each personal training session. Tap a member to reset their PIN, make them staff/admin, or remove them. Download **Summary CSV** or **All logs CSV**.
 - **Posts:** announcements (can be pinned) and pop-up events with a date and time.
 - **Daily:** your daily messages and tips, one per day in list order. Edit, add, or reorder them with the arrows. Each message shows 👀 how many members saw it and ❤️ how many hearted it. Tap one to see who.
 - **Rewards:** look up any code here, prize certificates (MDG-…) or InBody vouchers (IB-…), and tap **Mark used / Mark redeemed**. Members who work out 5 different days in a week (Mon–Sun) earn a spin. Look up a certificate code (e.g. MDG-7K3Q) and tap **Mark redeemed** when they claim it. Add/edit prizes and their odds here.

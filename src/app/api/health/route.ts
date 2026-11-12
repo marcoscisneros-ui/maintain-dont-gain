@@ -41,6 +41,8 @@ export async function GET() {
       report.phone_update = ph.error ? "MISSING ✗ (run 08_phone_and_spin5.sql)" : "installed ✓";
       const vo = await sb.from("vouchers").select("id", { head: true }).limit(1);
       report.inbody_vouchers_update = vo.error ? "MISSING ✗ (run 10_inbody_vouchers.sql)" : "installed ✓";
+      const ms = await sb.from("messages").select("id", { head: true }).limit(1);
+      report.messages_update = ms.error ? "MISSING ✗ (run 11_messages.sql)" : "installed ✓";
     } catch (e) {
       report.database = `ERROR: ${(e as Error).message}`;
     }
