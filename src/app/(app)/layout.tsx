@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
 import { CelebrationProvider } from "@/components/Celebration";
+import { registerServiceWorker } from "@/lib/push";
 import { FullScreenLoader } from "@/components/ui";
 
 /** Everything inside (app)/ requires login. New members are sent to /setup first. */
@@ -14,6 +15,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { loading, session, profile } = useAuth();
 
   const needsSetup = !!profile && !profile.onboarded && path !== "/setup";
+
+  useEffect(() => {
+    if (session) registerServiceWorker();
+  }, [session]);
 
   useEffect(() => {
     if (loading) return;

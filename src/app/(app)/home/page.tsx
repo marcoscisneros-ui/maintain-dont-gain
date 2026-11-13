@@ -20,6 +20,8 @@ import { formatEventTime, lastSeenNews, loadAnnouncements, splitFeed, type Annou
 import { bonusDays, multiplierFor, pointsForDay } from "@/lib/points";
 import { loadStreak } from "@/lib/streak";
 import { loadInbox, type InboxItem } from "@/lib/messages";
+import { MessagePopup } from "@/components/MessagePopup";
+import { NotificationsCard } from "@/components/NotificationsCard";
 import { Bell } from "lucide-react";
 import { useRewards } from "@/lib/useRewards";
 import { loadLeaderboard, ranks } from "@/lib/leaderboard";
@@ -255,6 +257,14 @@ export default function HomePage() {
         </Link>
       )}
 
+      <MessagePopup
+        userId={profile.id}
+        unread={unread}
+        coachName={settings.coach_name || "Marcos"}
+        coachPhoto={settings.coach_photo_url || null}
+        welcomeKey={`mdg-welcome-${profile.id}-${date}`}
+        onRead={() => loadInbox(profile.id).then(setInbox)}
+      />
       {unread.length > 0 && (
         <Link href="/inbox" className="rise flex items-center gap-3 rounded-3xl bg-card p-4 shadow-card ring-2 ring-brand/40">
           <span className="text-3xl">📬</span>
@@ -281,6 +291,8 @@ export default function HomePage() {
           <ChevronRight className="size-5 opacity-70" />
         </Link>
       )}
+
+      <NotificationsCard userId={profile.id} compact />
 
       {/* Quick log */}
       <section className="rise grid grid-cols-4 gap-2" style={{ animationDelay: "60ms" }}>

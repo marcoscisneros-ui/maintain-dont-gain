@@ -55,6 +55,9 @@ Run `supabase/11_messages.sql` the same way (safe to run more than once). Lets s
 ### 2l. Blind weigh-ins update
 Run `supabase/12_blind_weighins.sql` the same way (safe to run more than once). Lets members hide their weight (they only see up / down / steady, with a reveal code), and lets staff enter weigh-ins for any member.
 
+### 2m. Phone notifications update
+Run `supabase/13_push.sql` the same way (safe to run more than once). Then in the app go to **Admin → Settings → Phone notifications → Generate keys**, add the three values it shows (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`) in Vercel → Settings → Environment Variables, and redeploy. Members tap **Turn on notifications** on Home or their profile. iPhones need iOS 16.4+ and the app added to the Home Screen first (Apple's rule). Messages you send with "Also send a phone notification" checked pop up on their lock screen.
+
 ### 3. Lock down sign-ups (important)
 **Authentication → Sign In / Providers → Email** (or **Authentication → Settings**):
 - Turn **OFF** "Allow new users to sign up". (The app creates accounts itself. This stops anyone from going around it.)

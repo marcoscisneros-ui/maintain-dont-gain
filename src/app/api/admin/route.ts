@@ -29,6 +29,10 @@ export async function POST(req: Request) {
     return fail("Bad request");
   }
   const { action, userId } = body;
+  if (action === "generate_push_keys") {
+    const webpush = (await import("web-push")).default;
+    return Response.json(webpush.generateVAPIDKeys());
+  }
   if (!userId) return fail("Missing member");
   const self = userId === auth.user.id;
 

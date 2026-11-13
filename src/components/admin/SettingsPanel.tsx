@@ -5,6 +5,7 @@ import { ImageField } from "@/components/ImageField";
 import { Button, Card, ErrorText, Field, Input } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
 import { loadSettings, type Settings } from "@/lib/settings";
+import { adminAction } from "@/lib/admin";
 import { formatDate } from "@/lib/dates";
 
 const KEYS = [
@@ -54,6 +55,7 @@ export function SettingsPanel() {
         </span>
         <span className="text-xl">›</span>
       </a>
+      <PushSetup />
       <Card className="space-y-4">
         <h3 className="font-semibold">You (shown on daily messages)</h3>
         <ImageField value={s.coach_photo_url || null} onChange={(u) => set("coach_photo_url")(u ?? "")} folder="coach" label="Upload your headshot" round />
@@ -247,5 +249,81 @@ function BonusDays({
       )}
       <p className="text-xs text-muted">Don&apos;t forget to tap Save settings.</p>
     </div>
+  );
+}
+
+/** One-time setup for phone notifications: generate keys to paste into Vercel. */
+function PushSetup() {
+  const [keys, setKeys] = useState<{ publicKey: string; privateKey: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [copied, setCopied] = useState("");
+  const configured = !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+  const copy = async (label: string, v: string) => {
+    try {
+      await navigator.clipboard.writeText(v);
+      setCopied(label);
+      setTimeout(() => setCopied(""), 1500);
+    } catch {}
+  };
+
+  return (
+    <Card className="space-y-3">
+      <h3 className="font-semibold">📲 Phone notifications</h3>
+      {configured && !keys ? (
+        <p className="text-sm">
+          <span className="font-semibold text-accent">✓ Set up.</span> Members can turn on notifications on their Home screen or profile, and your messages can
+          pop up on their phones.
+        </p>
+      ) : (
+        <>
+          <p className="text-sm text-muted">
+            One-time setup so your messages can pop up on members&apos; phones. Generate keys, paste the three values into Vercel, then redeploy.
+          </p>
+          {!keys ? (
+            <Button
+              variant="secondary"
+              className="w-full"
+              loading={busy}
+              onClick={async () => {
+                setBusy(true);
+                setErr("");
+                try {
+                  setKeys(await adminAction("generate_push_keys", "-"));
+                } catch (e) {
+                  setErr((e as Error).message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Generate keys
+            </Button>
+          ) : (
+            <div className="space-y-2 text-sm">
+              <p>
+                In <b>Vercel → Settings → Environment Variables</b>, add these three (Production), then <b>Deployments → ⋯ → Redeploy</b>:
+              </p>
+              {[
+                ["NEXT_PUBLIC_VAPID_PUBLIC_KEY", keys.publicKey],
+                ["VAPID_PRIVATE_KEY", keys.privateKey],
+                ["VAPID_SUBJECT", "mailto:you@yourgym.com"],
+              ].map(([k, v]) => (
+                <div key={k} className="rounded-xl bg-card-2 p-3">
+                  <p className="font-mono text-xs font-bold">{k}</p>
+                  <p className="mt-1 font-mono text-xs break-all text-muted">{v}</p>
+                  <button onClick={() => copy(k, v)} className="mt-1 text-xs font-semibold text-brand">
+                    {copied === k ? "Copied!" : k === "VAPID_SUBJECT" ? "Copy (then change to your email)" : "Copy"}
+                  </button>
+                </div>
+              ))}
+              <p className="text-xs text-muted">Keep the private key secret. These are shown only now. If you lose them, just generate new ones (members will need to turn notifications on again).</p>
+            </div>
+          )}
+          {err && <p className="text-sm text-danger">{err}</p>}
+        </>
+      )}
+    </Card>
   );
 }

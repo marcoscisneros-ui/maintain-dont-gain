@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { timeAgo } from "@/lib/content";
 import { formatPhone } from "@/lib/phone";
 import { smsLink } from "@/lib/messages";
+import { VAPID_PUBLIC_KEY, sendPush } from "@/lib/push";
 import type { MemberStats } from "@/lib/admin";
 
 type Audience = "everyone" | "notToday" | "pending" | "gold" | "diamond" | "pick";
@@ -37,6 +38,14 @@ export function MessagesSheet({ stats, presetIds, onClose }: { stats: MemberStat
   const [done, setDone] = useState("");
   const [copied, setCopied] = useState(false);
   const [sent, setSent] = useState<Sent[] | null>(null);
+  const [alsoPush, setAlsoPush] = useState(true);
+  const [pushUsers, setPushUsers] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    supabase()
+      .from("push_subscriptions")
+      .select("user_id")
+      .then(({ data }) => setPushUsers(new Set((data ?? []).map((r) => r.user_id as string))));
+  }, []);
 
   const members = useMemo(() => stats.filter((m) => m.profile.id !== me?.id), [stats, me?.id]);
   const recipients = useMemo(() => {
@@ -68,6 +77,8 @@ export function MessagesSheet({ stats, presetIds, onClose }: { stats: MemberStat
     if (recipients.length === 1) return `${recipients[0].profile.first_name} ${recipients[0].profile.last_name.slice(0, 1)}.`;
     return `${recipients.length} picked members`;
   };
+
+  const withPush = recipients.filter((m) => pushUsers.has(m.profile.id)).length;
 
   const loadSent = useCallback(async () => {
     const [m, r] = await Promise.all([
@@ -107,7 +118,16 @@ export function MessagesSheet({ stats, presetIds, onClose }: { stats: MemberStat
       .insert(recipients.map((m) => ({ message_id: msg.id, user_id: m.profile.id })));
     setBusy(false);
     if (e2) return setError(e2.message);
-    setDone(`Sent to ${recipients.length} member${recipients.length === 1 ? "" : "s"}. They'll see it in their inbox next time they open the app.`);
+    let pushNote = "";
+    if (alsoPush && VAPID_PUBLIC_KEY && withPush > 0) {
+      const r = await sendPush(
+        recipients.map((m) => m.profile.id),
+        title.trim() || `Message from ${me?.first_name ?? "Marcos"}`,
+        body.trim(),
+      );
+      pushNote = r.error ? ` Phone notifications didn't go out: ${r.error}` : ` 📲 Phone notification delivered to ${r.sent ?? 0} device${r.sent === 1 ? "" : "s"}.`;
+    }
+    setDone(`Sent to ${recipients.length === 1 ? "1 member's" : `${recipients.length} members'`} inbox.${pushNote}`);
     setTitle("");
     setBody("");
   }
@@ -194,6 +214,21 @@ export function MessagesSheet({ stats, presetIds, onClose }: { stats: MemberStat
             <Field label="Message">
               <Textarea value={body} onChange={(e) => setBody(e.target.value)} rows={5} placeholder="Write it like you'd text them." />
             </Field>
+            {VAPID_PUBLIC_KEY ? (
+              <label className="flex items-start gap-3 rounded-2xl bg-card-2 px-4 py-3 text-sm">
+                <input type="checkbox" checked={alsoPush} onChange={(e) => setAlsoPush(e.target.checked)} className="mt-0.5 size-5 accent-[var(--brand)]" />
+                <span>
+                  <b>📲 Also send a phone notification</b>
+                  <span className="block text-xs text-muted">
+                    {withPush} of {recipients.length} have notifications turned on. Everyone still gets it in their inbox.
+                  </span>
+                </span>
+              </label>
+            ) : (
+              <p className="rounded-2xl bg-card-2 px-4 py-3 text-xs text-muted">
+                📲 Want this to pop up on their phones? Set up phone notifications in Admin → Settings.
+              </p>
+            )}
             <ErrorText>{error}</ErrorText>
             <Button className="w-full" onClick={send} loading={busy} disabled={!recipients.length}>
               <Send className="size-5" /> Send to inbox

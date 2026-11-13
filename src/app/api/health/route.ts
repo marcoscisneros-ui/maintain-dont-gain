@@ -45,11 +45,15 @@ export async function GET() {
       report.messages_update = ms.error ? "MISSING ✗ (run 11_messages.sql)" : "installed ✓";
       const bw = await sb.from("profiles").select("blind_weight", { head: true }).limit(1);
       report.blind_weighins_update = bw.error ? "MISSING ✗ (run 12_blind_weighins.sql)" : "installed ✓";
+      const ps = await sb.from("push_subscriptions").select("id", { head: true }).limit(1);
+      report.push_update = ps.error ? "MISSING ✗ (run 13_push.sql)" : "installed ✓";
     } catch (e) {
       report.database = `ERROR: ${(e as Error).message}`;
     }
   }
 
+  report.push_keys =
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY ? "set ✓" : "not set (optional: Admin → Settings → Phone notifications)";
   const ok = Object.values(report).every((v) => !v.includes("MISSING") && !v.startsWith("ERROR"));
   return Response.json({ ok, ...report }, { headers: { "Cache-Control": "no-store" } });
 }

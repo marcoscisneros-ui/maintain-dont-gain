@@ -8,6 +8,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Button, Card, ErrorText, Field, Input, PageHeader, Toggle } from "@/components/ui";
 import { playTada, setSoundEnabled, soundEnabled } from "@/lib/sound";
+import { NotificationsCard } from "@/components/NotificationsCard";
 import { supabase } from "@/lib/supabase";
 import { HeightInput, isValidHeight } from "@/components/HeightInput";
 import { formatPhone, isValidPhone, phoneDigits } from "@/lib/phone";
@@ -148,6 +149,10 @@ export default function MePage() {
           </Button>
         </Card>
       </form>
+
+      <div className="mt-4">
+        <NotificationsCard userId={profile.id} />
+      </div>
 
       <Card className="rise mt-4" style={{ animationDelay: "90ms" }}>
         <Toggle
