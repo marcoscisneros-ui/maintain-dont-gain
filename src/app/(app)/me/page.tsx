@@ -126,9 +126,16 @@ export default function MePage() {
           <Field label="Height">
             <HeightInput value={height} onChange={setHeight} />
           </Field>
-          <Field label="Starting weight" hint="Only you and staff can see this.">
-            <Input type="number" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} suffix="lbs" />
-          </Field>
+          {profile.blind_weight ? (
+            <div className="rounded-2xl bg-card-2 px-4 py-3 text-sm">
+              <span className="font-semibold">🙈 Starting weight hidden</span>
+              <span className="block text-xs text-muted">Blind weigh-ins are on. Manage them on the Progress tab.</span>
+            </div>
+          ) : (
+            <Field label="Starting weight" hint="Only you and staff can see this.">
+              <Input type="number" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} suffix="lbs" />
+            </Field>
+          )}
           <Field label="Daily calorie target">
             <Input type="number" inputMode="numeric" value={calories} onChange={(e) => setCalories(e.target.value)} suffix="cal" />
           </Field>

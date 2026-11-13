@@ -166,7 +166,7 @@ export function logsCSV(d: AllData): string {
 
 // ---------- server actions (PIN reset, admin, remove) ----------
 export async function adminAction(
-  action: "reset_pin" | "set_admin" | "delete_member" | "set_tier" | "adjust_sessions",
+  action: "reset_pin" | "set_admin" | "delete_member" | "set_tier" | "adjust_sessions" | "turn_off_blind",
   userId: string,
   extra: { pin?: string; value?: boolean; tier?: string; status?: string; delta?: number } = {},
 ) {

@@ -68,6 +68,10 @@ export async function POST(req: Request) {
       const { error } = await sb.from("profiles").update({ sessions_used: next }).eq("id", userId);
       return error ? fail(error.message, 500) : Response.json({ ok: true, sessions_used: next });
     }
+    case "turn_off_blind": {
+      const { error } = await sb.from("profiles").update({ blind_weight: false, reveal_hash: null }).eq("id", userId);
+      return error ? fail(error.message, 500) : Response.json({ ok: true });
+    }
     default:
       return fail("Unknown action");
   }

@@ -5,7 +5,7 @@ import { Download, Flame, KeyRound, RefreshCw, Search, ShieldCheck, Trash2 } fro
 import { useAuth } from "@/components/AuthProvider";
 import { Avatar } from "@/components/Avatar";
 import { Sheet } from "@/components/Sheet";
-import { Button, Card, Chip, Empty, ErrorText, Input, cn } from "@/components/ui";
+import { Button, Card, Chip, Empty, ErrorText, Field, Input, cn } from "@/components/ui";
 import { PinInput } from "@/components/PinInput";
 import { formatHeight } from "@/components/HeightInput";
 import { formatPhone } from "@/lib/phone";
@@ -177,6 +177,7 @@ export function Members() {
                       {m.profile.first_name} {m.profile.last_name}
                       {m.profile.is_admin && <ShieldCheck className="ml-1 inline size-4 text-violet" />}{" "}
                       <TierBadge tier={m.profile.tier} pending={m.profile.tier_status === "pending"} />
+                      {m.profile.blind_weight && <span title="Blind weigh-ins"> 🙈</span>}
                     </p>
                     <p className="truncate text-xs text-muted">
                       {m.daysLogged}d logged ·{" "}
@@ -357,6 +358,22 @@ function MemberSheet({ m, onClose, onChanged, onDirty, onMessage }: { m: MemberS
       <MemberVouchers userId={p.id} />
 
       <h3 className="mt-6 mb-2 font-semibold">Weigh-ins & InBody</h3>
+      {p.blind_weight && (
+        <div className="mb-3 rounded-2xl bg-violet/10 px-4 py-3 text-sm">
+          <p className="font-semibold text-violet">🙈 Blind weigh-ins are on</p>
+          <p className="text-xs text-muted">{p.first_name} only sees up / down / steady. Don&apos;t say the number out loud!</p>
+          <button
+            onClick={() => {
+              if (!confirm(`Turn off blind weigh-ins for ${p.first_name}? Their weight numbers will show again.`)) return;
+              run("blind", () => adminAction("turn_off_blind", p.id).then(() => {}), "Blind weigh-ins turned off.", true);
+            }}
+            className="mt-2 text-xs font-semibold text-violet underline"
+          >
+            Turn off (forgot their code)
+          </button>
+        </div>
+      )}
+      <AdminWeighIn userId={p.id} name={p.first_name} blind={!!p.blind_weight} onSaved={onDirty} />
       {m.scans.length === 0 ? (
         <Empty>No scans yet.</Empty>
       ) : (
@@ -649,6 +666,87 @@ function MemberVouchers({ userId }: { userId: string }) {
         {vouchers.map((v) => (
           <VoucherRow key={v.id} v={v} settings={settings} onChanged={load} compact />
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** Staff enter a weigh-in for a member (e.g. for blind weigh-ins). */
+function AdminWeighIn({ userId, name, blind, onSaved }: { userId: string; name: string; blind: boolean; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState(todayISO());
+  const [weight, setWeight] = useState("");
+  const [bf, setBf] = useState("");
+  const [smm, setSmm] = useState("");
+  const [visceral, setVisceral] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  async function save() {
+    setErr("");
+    const w = Number(weight);
+    if (!(w > 60 && w < 700)) return setErr("Enter the weight in pounds.");
+    setBusy(true);
+    const { error } = await supabase()
+      .from("inbody_scans")
+      .insert({
+        user_id: userId,
+        date,
+        weight: w,
+        body_fat_pct: bf ? Number(bf) : null,
+        smm: smm ? Number(smm) : null,
+        visceral_fat: visceral ? Number(visceral) : null,
+      });
+    setBusy(false);
+    if (error) return setErr(error.message.includes("row-level") ? "Run 12_blind_weighins.sql in Supabase first." : error.message);
+    setWeight("");
+    setBf("");
+    setSmm("");
+    setVisceral("");
+    setOpen(false);
+    setMsg(`Weigh-in saved for ${name}. It shows up when you reopen this panel.`);
+    onSaved();
+  }
+
+  if (!open)
+    return (
+      <>
+        <Button variant="secondary" className="mb-3 w-full text-sm" onClick={() => setOpen(true)}>
+          ⚖️ Add a weigh-in for {name}
+        </Button>
+        {msg && <p className="fade mb-3 text-xs font-medium text-accent">{msg}</p>}
+      </>
+    );
+  return (
+    <div className="fade mb-3 space-y-3 rounded-2xl bg-card-2 p-4">
+      <div className="grid grid-cols-2 gap-2">
+        <Field label={blind ? "Weight (they won't see it)" : "Weight"}>
+          <Input type="number" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} suffix="lbs" className="bg-card text-base" autoFocus />
+        </Field>
+        <Field label="Date">
+          <Input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} className="bg-card text-sm" />
+        </Field>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <Field label="Body fat %">
+          <Input type="number" inputMode="decimal" value={bf} onChange={(e) => setBf(e.target.value)} className="bg-card px-3 text-base" />
+        </Field>
+        <Field label="SMM lbs">
+          <Input type="number" inputMode="decimal" value={smm} onChange={(e) => setSmm(e.target.value)} className="bg-card px-3 text-base" />
+        </Field>
+        <Field label="Visceral">
+          <Input type="number" inputMode="decimal" value={visceral} onChange={(e) => setVisceral(e.target.value)} className="bg-card px-3 text-base" />
+        </Field>
+      </div>
+      {err && <p className="text-sm text-danger">{err}</p>}
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+        <Button onClick={save} loading={busy}>
+          Save weigh-in
+        </Button>
       </div>
     </div>
   );

@@ -43,6 +43,8 @@ export async function GET() {
       report.inbody_vouchers_update = vo.error ? "MISSING ✗ (run 10_inbody_vouchers.sql)" : "installed ✓";
       const ms = await sb.from("messages").select("id", { head: true }).limit(1);
       report.messages_update = ms.error ? "MISSING ✗ (run 11_messages.sql)" : "installed ✓";
+      const bw = await sb.from("profiles").select("blind_weight", { head: true }).limit(1);
+      report.blind_weighins_update = bw.error ? "MISSING ✗ (run 12_blind_weighins.sql)" : "installed ✓";
     } catch (e) {
       report.database = `ERROR: ${(e as Error).message}`;
     }

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { AvatarPicker } from "@/components/AvatarPicker";
-import { Button, ErrorText, Field, Input, cn } from "@/components/ui";
+import { Button, ErrorText, Field, Input, Toggle, cn } from "@/components/ui";
 import { HeightInput, isValidHeight } from "@/components/HeightInput";
 import { supabase } from "@/lib/supabase";
 import { todayISO } from "@/lib/dates";
@@ -23,6 +23,7 @@ export default function SetupPage() {
   const [bf, setBf] = useState("");
   const [smm, setSmm] = useState("");
   const [visceral, setVisceral] = useState("");
+  const [hideWeight, setHideWeight] = useState(false);
   const [height, setHeight] = useState(profile?.height_in?.toString() ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -33,7 +34,7 @@ export default function SetupPage() {
   async function next() {
     setError("");
     if (STEPS[step] === "weight" && !isValidHeight(height)) return setError("Enter your height in feet and inches.");
-    if (STEPS[step] === "weight" && !(w > 60 && w < 700)) return setError("Enter your current weight in pounds.");
+    if (STEPS[step] === "weight" && !(w > 60 && w < 700) && !(hideWeight && !weight)) return setError(hideWeight ? "That weight doesn't look right. Leave it blank for staff to enter." : "Enter your current weight in pounds.");
     if (STEPS[step] === "targets" && !(Number(calories) >= 1000 && Number(calories) <= 6000))
       return setError("Pick a daily calorie target between 1,000 and 6,000.");
     if (step < STEPS.length - 1) return setStep(step + 1);
@@ -47,7 +48,8 @@ export default function SetupPage() {
       .from("profiles")
       .update({
         avatar_url: avatar,
-        start_weight: w,
+        start_weight: w > 0 ? w : null,
+        blind_weight: hideWeight,
         height_in: Number(height),
         calorie_target: Number(calories),
         step_goal: Number(steps) || 8000,
@@ -58,8 +60,8 @@ export default function SetupPage() {
       setBusy(false);
       return setError("Couldn't save. Check your connection and try again.");
     }
-    // Starting scan: always record starting weight; InBody numbers if they have them.
-    await sb.from("inbody_scans").insert({
+    // Starting scan: record starting weight (if given); InBody numbers if they have them.
+    if (w > 0) await sb.from("inbody_scans").insert({
       date: todayISO(),
       weight: w,
       body_fat_pct: bf ? Number(bf) : null,
@@ -120,14 +122,22 @@ export default function SetupPage() {
               <Field label="Height">
                 <HeightInput value={height} onChange={setHeight} />
               </Field>
-              <Field label="Starting weight">
+              <Toggle checked={hideWeight} onChange={setHideWeight} label="🙈 Don't show me my weight" />
+              {hideWeight && (
+                <p className="fade -mt-2 text-sm text-muted">
+                  You&apos;ll only see if you&apos;re up, down or steady. Hand your phone to staff to type your weight (it stays hidden), or leave it blank and
+                  staff will weigh you. You can set a reveal code later on the Progress tab.
+                </p>
+              )}
+              <Field label={hideWeight ? "Starting weight (hidden, optional)" : "Starting weight"}>
                 <Input
-                  type="number"
+                  type={hideWeight ? "password" : "number"}
                   inputMode="decimal"
+                  autoComplete="off"
                   value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
+                  onChange={(e) => setWeight(e.target.value.replace(/[^0-9.]/g, ""))}
                   suffix="lbs"
-                  placeholder="185"
+                  placeholder={hideWeight ? "" : "185"}
                 />
               </Field>
             </div>
@@ -142,7 +152,7 @@ export default function SetupPage() {
               <Field
                 label="Daily calories"
                 hint={
-                  w > 0 ? (
+                  w > 0 && !hideWeight ? (
                     <>
                       Not sure? A typical maintenance range for you is about{" "}
                       <b className="text-ink">

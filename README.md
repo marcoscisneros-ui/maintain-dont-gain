@@ -52,6 +52,9 @@ Run `supabase/10_inbody_vouchers.sql` the same way (safe to run more than once).
 ### 2k. Messages update
 Run `supabase/11_messages.sql` the same way (safe to run more than once). Lets staff send messages to members' in-app inbox.
 
+### 2l. Blind weigh-ins update
+Run `supabase/12_blind_weighins.sql` the same way (safe to run more than once). Lets members hide their weight (they only see up / down / steady, with a reveal code), and lets staff enter weigh-ins for any member.
+
 ### 3. Lock down sign-ups (important)
 **Authentication → Sign In / Providers → Email** (or **Authentication → Settings**):
 - Turn **OFF** "Allow new users to sign up". (The app creates accounts itself. This stops anyone from going around it.)

@@ -5,6 +5,8 @@ import { Camera, FileImage, Lock, Plus, Trash2, X } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/Toast";
 import { InBodyVouchers } from "@/components/Vouchers";
+import { BlindWeightCard } from "@/components/BlindWeight";
+import { lastChange, sinceStart } from "@/lib/blind";
 import { useSettings } from "@/lib/settings";
 import { useCelebrate } from "@/components/Celebration";
 import { Button, Card, Empty, ErrorText, Field, Input, PageHeader, SectionTitle, Spinner, Toggle, cn } from "@/components/ui";
@@ -26,6 +28,7 @@ type Photo = { id: number; date: string; path: string; note: string | null };
 
 export default function ProgressPage() {
   const { profile, refreshProfile } = useAuth();
+  const [revealed, setRevealed] = useState(false);
   const toast = useToast();
   const settings = useSettings();
   const celebrate = useCelebrate();
@@ -56,6 +59,7 @@ export default function ProgressPage() {
   }, [load]);
 
   if (!profile) return null;
+  const blind = !!profile.blind_weight && !revealed;
   const first = scans[0];
   const latest = scans[scans.length - 1];
 
@@ -94,6 +98,8 @@ export default function ProgressPage() {
       {toast.node}
       <PageHeader title="Progress" subtitle="Holding steady is winning." />
 
+      <BlindWeightCard profile={profile} scans={scans} revealed={revealed} onReveal={setRevealed} onChanged={refreshProfile} />
+
       {settings && <InBodyVouchers userId={profile.id} settings={settings} name={`${profile.first_name} ${profile.last_name}`} />}
 
       {/* Change from start */}
@@ -104,7 +110,15 @@ export default function ProgressPage() {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2">
-              <Delta label="Weight" unit="lbs" from={first.weight} to={latest.weight} goodWhen="down-or-flat" />
+              {blind ? (
+                <div className="rounded-2xl bg-card-2 p-3">
+                  <p className="text-xs text-muted">Weight</p>
+                  <p className="mt-1 text-lg font-bold">{sinceStart(scans)?.emoji ?? "🙈"}</p>
+                  <p className="text-[11px] text-muted">{sinceStart(scans)?.text ?? "Hidden"}</p>
+                </div>
+              ) : (
+                <Delta label="Weight" unit="lbs" from={first.weight} to={latest.weight} goodWhen="down-or-flat" />
+              )}
               <Delta label="Body fat" unit="%" from={firstOf(scans, "body_fat_pct")} to={latestOf(scans, "body_fat_pct")} goodWhen="down-or-flat" />
               <Delta label="Muscle (SMM)" unit="lbs" from={firstOf(scans, "smm")} to={latestOf(scans, "smm")} goodWhen="up-or-flat" />
               <Delta label="Visceral fat" unit="lvl" from={firstOf(scans, "visceral_fat")} to={latestOf(scans, "visceral_fat")} goodWhen="down-or-flat" />
@@ -119,9 +133,14 @@ export default function ProgressPage() {
           <ScanForm
             userId={profile.id}
             needsHeight={profile.height_in == null}
+            blind={blind}
             onSaved={() => {
               setAdding(false);
-              celebrate({ kind: "star", title: "Weigh-in logged!", subtitle: "Checking in is how you hold the line." });
+              celebrate({
+                kind: "star",
+                title: "Weigh-in logged!",
+                subtitle: blind ? "Check your trend below. No numbers, just how it's going." : "Checking in is how you hold the line.",
+              });
               refreshProfile();
               load();
             }}
@@ -138,7 +157,7 @@ export default function ProgressPage() {
               <li key={s.id} className="flex items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">
-                    {Number(s.weight).toFixed(1)} lbs
+                    {blind ? (s === first ? "Starting weigh-in" : `Weigh-in ${lastChange(scans.slice(0, scans.indexOf(s) + 1))?.emoji ?? ""}`) : `${Number(s.weight).toFixed(1)} lbs`}
                     {s === first && <span className="ml-2 rounded-full bg-card-2 px-2 py-0.5 text-[11px] text-muted">start</span>}
                   </p>
                   <p className="text-xs text-muted">
@@ -319,7 +338,7 @@ function WeightChart({ scans }: { scans: Scan[] }) {
   );
 }
 
-function ScanForm({ userId, needsHeight, onSaved }: { userId: string; needsHeight: boolean; onSaved: () => void }) {
+function ScanForm({ userId, needsHeight, blind, onSaved }: { userId: string; needsHeight: boolean; blind?: boolean; onSaved: () => void }) {
   const [date, setDate] = useState(todayISO());
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -371,8 +390,16 @@ function ScanForm({ userId, needsHeight, onSaved }: { userId: string; needsHeigh
         </Field>
       )}
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Weight">
-          <Input type="number" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} suffix="lbs" autoFocus />
+        <Field label={blind ? "Weight (hidden)" : "Weight"} hint={blind ? "Hand your phone to staff or a friend to type it." : undefined}>
+          <Input
+            type={blind ? "password" : "number"}
+            inputMode="decimal"
+            autoComplete="off"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value.replace(/[^0-9.]/g, ""))}
+            suffix="lbs"
+            autoFocus
+          />
         </Field>
         <Field label="Date">
           <Input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} className="text-base" />

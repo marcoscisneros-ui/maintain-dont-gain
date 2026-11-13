@@ -344,7 +344,7 @@ export default function HomePage() {
           <span className="flex items-center gap-2 text-sm text-muted">
             <Scale className="size-4" /> Weight since start
           </span>
-          <WeightChange value={today?.weightChange ?? null} />
+          <WeightChange value={today?.weightChange ?? null} blind={!!profile.blind_weight} />
         </div>
       </Card>
 
@@ -484,8 +484,14 @@ function Glance({ label, sub, children }: { label: string; sub: string; children
   );
 }
 
-function WeightChange({ value }: { value: number | null }) {
+function WeightChange({ value, blind }: { value: number | null; blind?: boolean }) {
   if (value == null) return <span className="text-sm text-muted">No weigh-ins yet</span>;
+  if (blind)
+    return (
+      <span className={`text-sm font-bold ${value <= 1 ? "text-accent" : "text-brand"}`}>
+        {value < -1 ? "🎉 Down" : value <= 1 ? "✅ Holding the line" : "💪 Up a little"}
+      </span>
+    );
   const v = Math.round(value * 10) / 10;
   const good = v <= 1; // within a pound counts as maintaining
   return (

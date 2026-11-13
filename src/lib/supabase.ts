@@ -31,6 +31,8 @@ export type Profile = {
   start_weight: number | null;
   height_in: number | null;
   phone?: string | null;
+  blind_weight?: boolean;
+  reveal_hash?: string | null;
   calorie_target: number;
   step_goal: number;
   onboarded: boolean;
