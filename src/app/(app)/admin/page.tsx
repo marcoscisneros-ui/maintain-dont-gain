@@ -54,8 +54,11 @@ export default function AdminPage() {
       <button onClick={() => router.push("/home")} className="-ml-2 flex items-center gap-1 text-sm font-medium text-muted">
         <ChevronLeft className="size-5" /> Back to app
       </button>
-      <div className="mt-3">
+      <div className="mt-3 flex items-start justify-between gap-3">
         <PageHeader title="Admin" subtitle="Run the challenge from here." />
+        <a href="/live" className="mt-1 flex shrink-0 items-center gap-1.5 rounded-full bg-[#14231d] px-3.5 py-2 text-sm font-bold text-white ring-1 ring-[#ffd23f]/50">
+          <span className="size-2 animate-pulse rounded-full bg-[#ff3d5a]" /> Live dashboard
+        </a>
       </div>
 
       <div className="sticky top-0 z-20 -mx-4 mb-4 bg-bg/90 px-4 py-2 backdrop-blur-xl pt-safe">

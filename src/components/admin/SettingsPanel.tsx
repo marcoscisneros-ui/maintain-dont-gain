@@ -47,6 +47,14 @@ export function SettingsPanel() {
 
   return (
     <div className="space-y-4">
+      <a href="/live" className="flex items-center gap-3 rounded-3xl bg-gradient-to-br from-[#14231d] to-[#2a0f12] p-4 text-white shadow-card ring-1 ring-[#ffd23f]/40">
+        <span className="text-2xl">📺</span>
+        <span className="flex-1">
+          <span className="block font-bold">Live dashboard</span>
+          <span className="block text-sm text-white/80">Open on the front-desk TV: leaderboard, podium and live workout shout-outs</span>
+        </span>
+        <span className="text-xl">›</span>
+      </a>
       <a href="/poster" className="flex items-center gap-3 rounded-3xl bg-gradient-to-br from-[#c8283f] to-[#e8762c] p-4 text-white shadow-card">
         <span className="text-2xl">🖨️</span>
         <span className="flex-1">

@@ -28,6 +28,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading || !session || !profile || needsSetup) return <FullScreenLoader />;
 
+  // the front-desk Live Dashboard takes over the whole screen
+  if (path === "/live") return <>{children}</>;
+
   const showNav = path !== "/setup" && path !== "/poster";
   return (
     <>
