@@ -11,6 +11,7 @@ import { Collectible, type CollectibleKind } from "@/components/Collectibles";
 import { Confetti } from "@/components/PrizeWheel";
 import { JingleBells, seasonFor } from "@/components/Seasonal";
 import { Coin3D, Crown, LiveFlakes, PodiumBlock, StringLights, Turkey, type TurkeyPose } from "@/components/live/LiveArt";
+import { RaceTrack } from "@/components/live/Race";
 import { loadLeaderboard, ranks, type Row } from "@/lib/leaderboard";
 import { loadSettings, type Settings } from "@/lib/settings";
 import { formatDate, programStatus, todayISO, type ProgramStatus } from "@/lib/dates";
@@ -23,6 +24,7 @@ import { supabase } from "@/lib/supabase";
 const REFRESH_MS = 20_000;
 const SLIDE_MS = 13_000;
 const CELEBRATE_MS = 6_500;
+const SCENE_MS = 30_000; // podium + leaderboard ↔ holiday race
 
 type Workout = { id: number; user_id: string; date: string; location: Location; activity: string; created_at: string };
 type Person = { id: string; first_name: string; last_name: string; avatar_url: string | null };
@@ -62,6 +64,18 @@ function useScale() {
 /** Big-screen, auto-updating board for the front desk TV. */
 export default function LiveDashboard() {
   const px = useScale();
+  // the left two panels take turns: podium + leaderboard, then the holiday race.
+  // /live?scene=race or /live?scene=board pins one of them.
+  const [scene, setScene] = useState<"board" | "race">("board");
+  useEffect(() => {
+    const pin = new URLSearchParams(window.location.search).get("scene");
+    if (pin === "race" || pin === "board") {
+      setScene(pin);
+      return;
+    }
+    const t = setInterval(() => setScene((x) => (x === "board" ? "race" : "board")), SCENE_MS);
+    return () => clearInterval(t);
+  }, []);
   const router = useRouter();
   const { profile } = useAuth();
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -316,8 +330,14 @@ export default function LiveDashboard() {
 
         {/* ---- main */}
         <main className="grid min-h-0 grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,0.95fr)] gap-[1.4rem]">
-          <Podium rows={live.slice(0, 3)} deltas={deltas} />
-          <Board rows={rows} ranks={rk} deltas={deltas} />
+          {scene === "race" ? (
+            <RaceScene rows={rows} winter={winter} />
+          ) : (
+            <>
+              <Podium rows={live.slice(0, 3)} deltas={deltas} />
+              <Board rows={rows} ranks={rk} deltas={deltas} />
+            </>
+          )}
           <Spotlight slides={slides} />
         </main>
 
@@ -488,6 +508,27 @@ function Podium({ rows, deltas }: { rows: Row[]; deltas: Record<string, { n: num
       <div className="pointer-events-none absolute -right-[1rem] bottom-[0.2rem]">
         <Turkey size={px(110)} pose="cheer" delay={0.3} />
       </div>
+    </section>
+  );
+}
+
+function RaceScene({ rows, winter }: { rows: Row[]; winter: boolean }) {
+  const px = useScale();
+  return (
+    <section className="lv-glass lv-scene relative col-span-2 flex min-h-0 flex-col overflow-hidden rounded-[1.6rem] px-[1.4rem] py-[1.1rem]">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="text-[1.9rem] leading-none font-black">{winter ? "🦌 The Reindeer Race" : "🦃 The Turkey Trot"}</h2>
+          <p className="mt-[0.3rem] text-[1.1rem] text-white/70">Every point moves your {winter ? "sleigh" : "turkey"} closer to the finish line. Who&apos;s catching the leader?</p>
+        </div>
+      </div>
+      {rows.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center text-[1.4rem] text-white/70">The race starts when the first workout is logged!</div>
+      ) : (
+        <div className="min-h-0 flex-1 pt-[0.9rem]">
+          <RaceTrack rows={rows} winter={winter} lanes={10} racer={px(winter ? 72 : 80)} variant="tv" />
+        </div>
+      )}
     </section>
   );
 }

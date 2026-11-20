@@ -322,3 +322,28 @@ input[type="number"] { -moz-appearance: textfield; }
 @keyframes lv-burst-in { 0% { transform: scale(0.6) rotateX(30deg); opacity: 0; } 60% { transform: scale(1.04); opacity: 1; } 100% { transform: none; } }
 .lv-burst { animation: lv-burst-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .lv-burst-out { animation: fade 0.5s ease-in reverse both; }
+
+/* ---------- holiday race (turkey trot / reindeer race) ---------- */
+.lv-lane-dirt { background: repeating-linear-gradient(90deg, transparent 0 2.2rem, rgb(255 255 255 / 0.08) 2.2rem 2.5rem), linear-gradient(180deg, #8a5a33, #5e3a1e); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.35); }
+.lv-lane-snow { background: repeating-linear-gradient(90deg, transparent 0 2.2rem, rgb(120 160 200 / 0.18) 2.2rem 2.5rem), linear-gradient(180deg, #ffffff, #d9e7f2); box-shadow: inset 0 2px 4px rgb(40 70 100 / 0.25); }
+.lv-finish { background: conic-gradient(#1d1a17 25%, #fff 0 50%, #1d1a17 0 75%, #fff 0) 0 0 / 0.7rem 0.7rem; opacity: 0.9; }
+.lv-racer { transition: left 2.6s cubic-bezier(0.3, 0.1, 0.2, 1); z-index: 1; }
+.lv-dust { position: absolute; left: 0; bottom: 0.1rem; width: 0.9rem; height: 0.9rem; border-radius: 9999px; background: rgb(255 255 255 / 0.55); animation: lv-dust 0.5s ease-out infinite; }
+@keyframes lv-dust { from { transform: translate(0, 0) scale(0.5); opacity: 0.8; } to { transform: translate(-1.4rem, -0.4rem) scale(1.3); opacity: 0; } }
+.lv-deer g { transform-box: fill-box; }
+.lv-deer-body { animation: lv-gallop 0.5s ease-in-out var(--d, 0s) infinite; transform-origin: 70% 100%; }
+@keyframes lv-gallop { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-5px) rotate(-3deg); } }
+.lv-sleigh { animation: lv-sleigh 0.5s ease-in-out calc(var(--d, 0s) + 0.12s) infinite; transform-origin: 50% 100%; }
+@keyframes lv-sleigh { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-3px) rotate(1.5deg); } }
+.lv-deer-leg { transform-origin: 50% 0%; }
+.lv-deer-front, .lv-deer-back2 { animation: lv-leg-a 0.5s ease-in-out var(--d, 0s) infinite; }
+.lv-deer-back, .lv-deer-front2 { animation: lv-leg-b 0.5s ease-in-out var(--d, 0s) infinite; }
+@keyframes lv-leg-a { 0%, 100% { transform: rotate(28deg); } 50% { transform: rotate(-24deg); } }
+@keyframes lv-leg-b { 0%, 100% { transform: rotate(-24deg); } 50% { transform: rotate(28deg); } }
+.lv-deer-head { transform-origin: 20% 90%; animation: lv-deer-head 0.5s ease-in-out var(--d, 0s) infinite; }
+@keyframes lv-deer-head { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-6deg); } }
+.lv-deer-glow { transform-origin: center; animation: lv-nose 1.2s ease-in-out infinite; }
+@keyframes lv-nose { 0%, 100% { transform: scale(0.8); opacity: 0.6; } 50% { transform: scale(1.3); opacity: 1; } }
+.lv-deer-bell { transform-origin: 50% 0%; animation: ring 1s ease-in-out infinite; }
+@keyframes lv-scene-in { from { opacity: 0; transform: translateY(1.5rem) scale(0.98); } to { opacity: 1; transform: none; } }
+.lv-scene { animation: lv-scene-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }

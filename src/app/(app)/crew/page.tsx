@@ -12,6 +12,8 @@ import { useSettings } from "@/lib/settings";
 import { bonusDays } from "@/lib/points";
 import { formatDate, todayISO } from "@/lib/dates";
 import { classLink } from "@/lib/classLink";
+import { RaceTrack } from "@/components/live/Race";
+import { seasonFor } from "@/components/Seasonal";
 
 export default function CrewPage() {
   const { profile } = useAuth();
@@ -87,6 +89,16 @@ export default function CrewPage() {
               );
             })}
           </div>
+        </Card>
+      )}
+
+      {rows && rows.some((r) => r.points > 0) && (
+        <Card className="rise overflow-hidden" style={{ animationDelay: "20ms" }}>
+          <SectionTitle right={<span className="lv-finish inline-block h-5 w-7 rounded" />}>
+            {seasonFor() === "winter" ? "🦌 The Reindeer Race" : "🦃 The Turkey Trot"}
+          </SectionTitle>
+          <p className="-mt-1 mb-3 text-xs text-muted">Every point moves you closer to the finish line.</p>
+          <RaceTrack rows={rows} winter={seasonFor() === "winter"} lanes={6} meId={profile.id} racer={44} />
         </Card>
       )}
 
